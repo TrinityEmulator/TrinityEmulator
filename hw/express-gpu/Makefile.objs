@@ -1,0 +1,37 @@
+common-obj-$(CONFIG_EXPRESS_GPU) += express_gpu_render.o
+common-obj-$(CONFIG_EXPRESS_GPU) += offscreen_render_thread.o
+
+common-obj-$(CONFIG_EXPRESS_GPU) += glad.o
+
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_context.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_trans.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_mem.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_texture.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_vertex.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_resource.o
+
+
+
+
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_trans.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_surface.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_config.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_display.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_display_wgl.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_context.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_draw.o
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_sync.o
+
+
+common-obj-$(CONFIG_EXPRESS_GPU) += glv1.o
+
+
+common-obj-$(CONFIG_EXPRESS_GPU) += egl_window_wgl.o
+
+
+
+common-obj-$(CONFIG_EXPRESS_GPU) += test_trans.o
+
+
+
+

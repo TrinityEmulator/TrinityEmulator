@@ -1,0 +1,4 @@
+config EXPRESS_GPU
+    bool
+    default y
+    depends on DIRECT_EXPRESS

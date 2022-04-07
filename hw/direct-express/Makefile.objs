@@ -1,0 +1,7 @@
+common-obj-$(CONFIG_DIRECT_EXPRESS_PCI) += direct_express_pci.o
+common-obj-$(CONFIG_DIRECT_EXPRESS) += direct_express.o
+common-obj-$(CONFIG_DIRECT_EXPRESS) += express_handle_thread.o
+common-obj-$(CONFIG_DIRECT_EXPRESS) += direct_express_distribute.o
+
+common-obj-$(CONFIG_DIRECT_EXPRESS) += express_log.o
+

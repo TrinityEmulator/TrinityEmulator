@@ -1,0 +1,2 @@
+args-name-clash.json: In command 'oops':
+args-name-clash.json:4: parameter 'a_b' collides with parameter 'a-b'

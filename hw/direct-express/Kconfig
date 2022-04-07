@@ -1,0 +1,9 @@
+config DIRECT_EXPRESS
+    bool
+    default y
+    depends on PCI && VIRTIO
+
+config DIRECT_EXPRESS_PCI
+    bool
+    default y
+    depends on PCI && VIRTIO
