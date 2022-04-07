@@ -16,6 +16,9 @@ Trinity is based on QEMU 5.0. Most of the code here remains consistent with the 
 Other minor changes to the vanilla QEMU includ the general keyboard mapping and input device to achieve cross-platform compatibility.
 
 ### Build
+
+We use git submodule to hold some of the essential modules. Thus, after `git clone`, you should also run `git submodule update --init --recursive` at the repo's root directory.
+
 #### Windows
 * **Environment & Dependencies**
 
