@@ -54,7 +54,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 
   * Running
   
-    We provide an automatic script for running Trinity. Therefore, all you need to do is download the [guest system’s ISO](https://drive.google.com/drive/folders/1-2s3oKei5XgpkhVPKF8quxxWTwWctm5-?usp=sharing) and [Batch file](https://drive.google.com/drive/folders/1-2s3oKei5XgpkhVPKF8quxxWTwWctm5-?usp=sharing) we provide, put them at the root directory of the repo, and double-click on the Batch file `run.cmd` to execute Trinity.
+    We provide an automatic script for running Trinity. Therefore, all you need to do is download the guest system’s ISO and Batch file we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and double-click on the Batch file `run.cmd` to execute Trinity.
 
     During booting, you may see an option to run without installation or to install provided by the Android-x86 system we host. The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data), while the latter may involve more complex configurations (you can find them [here](https://www.android-x86.org/installhowto.html)).
 ### Developing
