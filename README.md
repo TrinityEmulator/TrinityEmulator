@@ -47,7 +47,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 * **Run An Emulator**
   * Prerequisites
     
-    We highly recommand you run Trinity on a **WinTel machine (with a NVIDIA dedicated GPU if possible)**, as this hardware/software setting is more tested than others.
+    We highly recommand you run Trinity on a **WinTel machine (with a NVIDIA dedicated GPU if possible)**, as this hardware/software setting is more tested than others. Further setup includes:
     1. Ensure that you have turned on Intel VT in the BIOS settings.
     2. Install Intel HAXM (instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows).
     And then you are good to go!
