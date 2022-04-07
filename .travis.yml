@@ -35,4 +35,4 @@ cache:
 
 script:
   - $mingw64 ./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl --target-list=x86_64-softmmu --disable-werror
-  - $mingw64 make -j8
+  - $mingw64 make -j12
