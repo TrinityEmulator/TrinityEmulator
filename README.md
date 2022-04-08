@@ -22,8 +22,8 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 
     The building of Trinity on Windows (tested on 64-bit Win 10/11 Home/Professional/LTSC) should be performed under the `MSYS2` environment. Your environment setup should include:
 
-   1. Download and install MSYS2 following the instructions at [https://www.msys2.org/](https://www.msys2.org/)
-   2. Open the MSYS2 MinGW 64-bit terminal and install dependencies using:
+   1. Download and install MSYS2 following the instructions at [https://www.msys2.org/](https://www.msys2.org/). ***CRITICAL NOTE*: DO NOT INSTALL MSYS AT PATH THAT CONTAINS A SPACE, e.g., C:/Program Files**.
+   2. Open the **MSYS2 MinGW x64** terminal (***CRITICAL NOTE*: NOT THE MSYS2 MSYS TERMINAL**) and install dependencies using:
    
       ``pacman -S base-devel git mingw-w64-x86_64-binutils mingw-w64-x86_64-crt-git mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-make mingw-w64-x86_64-tools-git mingw-w64-x86_64-pkg-config mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winstorecompat-git mingw-w64-x86_64-libmangle-git mingw-w64-x86_64-pixman mingw-w64-x86_64-SDL2 mingw-w64-x86_64-glib2 mingw-w64-x86_64-capstone mingw-w64-x86_64-glfw``
    3. Additional environmental adjustments (also executed at the MSYS terminal):
@@ -31,7 +31,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
       ``cp /mingw64/bin/ar.exe /mingw64/bin/x86_64-w64-mingw32-ar.exe & cp /mingw64/bin/ranlib.exe /mingw64/bin/x86_64-w64-mingw32-ranlib.exe & cp /mingw64/bin/windres.exe /mingw64/bin/x86_64-w64-mingw32-windres.exe & cp /mingw64/bin/objcopy.exe /mingw64/bin/x86_64-w64-mingw32-objcopy.exe  & cp /mingw64/bin/nm.exe /mingw64/bin/x86_64-w64-mingw32-nm.exe``
 * **Configure**
 
-    `cd` to the root directory of the repo at the MSYS terminal, input the following to configure:
+    `cd` to the root directory of the repo at the MSYS terminal (note that you *cannot* use a typical Windows path such as `C:/XXX` for `cd`, instead you can simply drag and drop the repo to the terminal to acquire its path in MSYS), input the following to configure:
     `./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl  --target-list=x86_64-softmmu --disable-werror`
 * **Compile**
 
