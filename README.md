@@ -1,7 +1,5 @@
 ## Trinity: Desirable Mobile Emulation through Graphics Projection
-![version](https://img.shields.io/badge/Version-Beta-yellow "Beta")
-![license](https://img.shields.io/badge/GuestOS-Androidx86-green "Android")
-![license](https://img.shields.io/badge/Licence-GPLv2-blue.svg "Apache")
+![version](https://img.shields.io/badge/Version-Beta-yellow "Beta") ![license](https://img.shields.io/badge/GuestOS-Androidx86-green "Android") ![license](https://img.shields.io/badge/Licence-GPLv2-blue.svg "Apache")
 
 This is the repo for holding the code of Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
 
@@ -38,25 +36,26 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 * **Compile**
 
     After the configuration, simply type `make -j${#threads}`, where `#threads` is the number of threads for compiling.
-### Install & Run
+### Run Trinity
 
-* **Install**
+* **Hardware Requirements**
+    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine (with an NVIDIA dedicated GPU if possible)*, as this hardware/software setting is more tested than others.
 
-    Installation is optional. If you want to install, type `make install` to do so. However, you can run fine without installation.
+* **Software Prerequisites**
+  1. Ensure that you have turned on Intel VT in the BIOS settings.
+  2. Install Intel HAXM (recommended version is v7.6.6, instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)). 
+  3. And then you are good to go!
 
-* **Run An Emulator**
-  * Prerequisites
-    
-    We highly recommand you run Trinity on a **WinTel machine (with a NVIDIA dedicated GPU if possible)**, as this hardware/software setting is more tested than others. Further setup includes:
-    1. Ensure that you have turned on Intel VT in the BIOS settings.
-    2. Install Intel HAXM (recommended version is v7.6.6, instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)).
-    And then you are good to go!
-
-  * Running
+* **Running**
   
-    We provide an automatic script for running Trinity. Therefore, all you need to do is download the guest system’s ISO and Batch file we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and double-click on the Batch file `run.cmd` to execute Trinity.
-
-    During booting, you may see an option to run without installation or to install provided by the Android-x86 system we host. The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data), while the latter may involve more complex configurations (you can find them [here](https://www.android-x86.org/installhowto.html)).
+    We provide an automatic script for running Trinity. Therefore, all you need to do is: 
+    - Download the guest system’s ISO and Batch file we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and double-click on the Batch file `run.cmd` to execute Trinity.
+* **Guest OS Installation**
+    During system boot, you may see options to run without installation or to install the Android-x86 image we provided. 
+    
+    - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
+    
+    - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
 ### Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
 ### Licensing 
