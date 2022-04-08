@@ -13,6 +13,32 @@ Trinity is based on QEMU 5.0. Most of the code here remains consistent with the 
 
 Other minor changes to the vanilla QEMU includ the general keyboard mapping and input device to achieve cross-platform compatibility.
 
+### Run Trinity
+
+* **Hardware Requirements**
+    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is more tested than others.
+
+* **Software Prerequisites**
+  1. Ensure that you have turned on Intel VT in the BIOS settings.
+  2. Install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/tag/v7.6.5), install instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)). 
+  3. And then you are good to go!
+
+* **Running the Released Binary**
+    We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/download/Trinity-init-release/Trinity.zip). Download and extract the ZIP file, double-click the Batch script `run.cmd` in the extracted folder, and then you can run Trinity directly.
+### Guest OS Installation
+
+Before you can enjoy Trinity, you may see options to run without installation or to install the Android-x86 image during system boot. 
+    
+  - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
+    
+  - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
+
+### Result Reproducing
+
+As an academic project, it's essential for readers of our paper to be able to reproduce our claimed results. We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides for running our experiments independently.
+
+Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/wiki#reproducing-results) for more details.
+
 ### Build
 
 We use git submodule to hold some of the essential modules. Thus, after `git clone`, you should also run `git submodule update --init --recursive` at the repo's root directory.
@@ -28,7 +54,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
       ``pacman -S base-devel git mingw-w64-x86_64-binutils mingw-w64-x86_64-crt-git mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-make mingw-w64-x86_64-tools-git mingw-w64-x86_64-pkg-config mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winstorecompat-git mingw-w64-x86_64-libmangle-git mingw-w64-x86_64-pixman mingw-w64-x86_64-SDL2 mingw-w64-x86_64-glib2 mingw-w64-x86_64-capstone mingw-w64-x86_64-glfw``
    3. Additional environmental adjustments (also executed at the MSYS terminal):
    
-      ``cp /mingw64/bin/ar.exe /mingw64/bin/x86_64-w64-mingw32-ar.exe & cp /mingw64/bin/ranlib.exe /mingw64/bin/x86_64-w64-mingw32-ranlib.exe & cp /mingw64/bin/windres.exe /mingw64/bin/x86_64-w64-mingw32-windres.exe & cp /mingw64/bin/objcopy.exe /mingw64/bin/x86_64-w64-mingw32-objcopy.exe  & cp /mingw64/bin/nm.exe /mingw64/bin/x86_64-w64-mingw32-nm.exe``
+      ``cp /mingw64/bin/ar.exe /mingw64/bin/x86_64-w64-mingw32-ar.exe & cp /mingw64/bin/ranlib.exe /mingw64/bin/x86_64-w64-mingw32-ranlib.exe & cp /mingw64/bin/windres.exe /mingw64/bin/x86_64-w64-mingw32-windres.exe & cp /mingw64/bin/objcopy.exe /mingw64/bin/x86_64-w64-mingw32-objcopy.exe  & cp /mingw64/bin/nm.exe /mingw64/bin/x86_64-w64-mingw32-nm.exe & cp /mingw64/bin/strip.exe /mingw64/bin/x86_64-w64-mingw32-strip.exe``
 * **Configure**
 
     `cd` to the root directory of the repo at the MSYS terminal (note that you *cannot* use a typical Windows path such as `C:/XXX` for `cd`, instead you can simply drag and drop the repo to the terminal to acquire its path in MSYS), input the following to configure:
@@ -36,33 +62,10 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 * **Compile**
 
     After the configuration, simply type `make -j${#threads}`, where `#threads` is the number of threads for compiling.
-### Run Trinity
 
-* **Hardware Requirements**
-    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is more tested than others.
-
-* **Software Prerequisites**
-  1. Ensure that you have turned on Intel VT in the BIOS settings.
-  2. Install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/tag/v7.6.5), install instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)). 
-  3. And then you are good to go!
-
-* **Running**
-  
+* **Run the built Trinity**
     We provide an automatic script for running Trinity. Therefore, all you need to do is: 
-    - Download the guest system’s ISO and Batch file we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and double-click on the Batch file `run.cmd` to execute Trinity.
-### Guest OS Installation
-
-During system boot, you may see options to run without installation or to install the Android-x86 image we provided. 
-    
-  - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
-    
-  - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
-
-### Result Reproducing
-
-As an academic project, it's essential for readers of our paper to be able to reproduce our claimed results. We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides for running our experiments independently.
-
-Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/wiki#reproducing-results) for more details.
+    Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the Batch script (`run.cmd`) we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and execute the Batch script at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
 
 ### Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
