@@ -66,6 +66,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
     After the configuration, simply type `make install -j${#threads}`, where `#threads` is the number of threads for compiling.
 
 * **Run the Built Trinity**
+
     We provide a proxy executable for running Trinity. Therefore, all you need to do is: 
     Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the executable (`Trinity.exe`) we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and execute the Batch script at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
 
