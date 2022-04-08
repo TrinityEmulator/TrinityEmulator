@@ -39,7 +39,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 ### Run Trinity
 
 * **Hardware Requirements**
-    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver ($\geq$version 497.09) if possible*, as this hardware/software setting is more tested than others.
+    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is more tested than others.
 
 * **Software Prerequisites**
   1. Ensure that you have turned on Intel VT in the BIOS settings.
