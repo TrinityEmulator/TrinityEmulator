@@ -31,7 +31,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 
 Before you can enjoy Trinity, you may see options to run without installation or to install the Android-x86 image during system boot. 
     
-  - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
+  - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space). Press `Enter` on this option to run without installation.
     
   - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
 
