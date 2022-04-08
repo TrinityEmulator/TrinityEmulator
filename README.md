@@ -16,6 +16,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 ### Run Trinity
 
 * **Hardware Requirements**
+
     We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is more tested than others.
 
 * **Software Prerequisites**
@@ -24,6 +25,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
   3. And then you are good to go!
 
 * **Running the Released Binary**
+
     We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/download/Trinity-init-release/Trinity.zip). Download and extract the ZIP file, double-click the Batch script `run.cmd` in the extracted folder, and then you can run Trinity directly.
 ### Guest OS Installation
 
