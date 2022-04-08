@@ -26,7 +26,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 
 * **Running the Released Binary**
 
-    We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/download/Trinity-init-release/Trinity.zip). Download and extract the ZIP file, double-click the Batch script `run.cmd` in the extracted folder, and then you can run Trinity directly.
+    We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/download/Trinity-init-release/Trinity.zip). Download and extract the ZIP file, double-click the executable `Trinity.exe` in the extracted folder, and then you can run Trinity directly.
 ### Guest OS Installation
 
 Before you can enjoy Trinity, you may see options to run without installation or to install the Android-x86 image during system boot. 
@@ -63,11 +63,11 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
     `./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl  --target-list=x86_64-softmmu --disable-werror`
 * **Compile**
 
-    After the configuration, simply type `make -j${#threads}`, where `#threads` is the number of threads for compiling.
+    After the configuration, simply type `make install -j${#threads}`, where `#threads` is the number of threads for compiling.
 
-* **Run the built Trinity**
-    We provide an automatic script for running Trinity. Therefore, all you need to do is: 
-    Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the Batch script (`run.cmd`) we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and execute the Batch script at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
+* **Run the Built Trinity**
+    We provide a proxy executable for running Trinity. Therefore, all you need to do is: 
+    Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the executable (`Trinity.exe`) we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and execute the Batch script at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
 
 ### Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
