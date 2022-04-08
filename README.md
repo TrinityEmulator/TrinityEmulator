@@ -35,6 +35,9 @@ Before you can enjoy Trinity, you may see options to run without installation or
     
   - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
 
+### Usages
+Use Trinity as you use your mobile phones. Trinity's guest OS is packed with @[OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even arm-based ones! For advanced developing and experimental techniques, refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages).
+
 ### Result Reproducing
 
 As an academic project, it's essential for readers of our paper to be able to reproduce our claimed results. We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides for running our experiments independently.
