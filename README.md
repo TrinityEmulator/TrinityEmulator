@@ -50,12 +50,20 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
   
     We provide an automatic script for running Trinity. Therefore, all you need to do is: 
     - Download the guest system’s ISO and Batch file we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and double-click on the Batch file `run.cmd` to execute Trinity.
-* **Guest OS Installation**
-    During system boot, you may see options to run without installation or to install the Android-x86 image we provided. 
+### Guest OS Installation
+
+During system boot, you may see options to run without installation or to install the Android-x86 image we provided. 
     
-    - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
+  - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
     
-    - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
+  - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
+
+### Result Reproducing
+
+As an academic project, it's essential for readers of our paper to be able to reproduce our claimed results. We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides for running our experiments independently.
+
+Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/wiki#reproducing-results) for more details.
+
 ### Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
 ### Licensing 
