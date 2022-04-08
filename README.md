@@ -39,11 +39,11 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 ### Run Trinity
 
 * **Hardware Requirements**
-    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine (with an NVIDIA dedicated GPU if possible)*, as this hardware/software setting is more tested than others.
+    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver ($\geq$version 497.09) if possible*, as this hardware/software setting is more tested than others.
 
 * **Software Prerequisites**
   1. Ensure that you have turned on Intel VT in the BIOS settings.
-  2. Install Intel HAXM (recommended version is v7.6.6, instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)). 
+  2. Install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/tag/v7.6.5), install instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)). 
   3. And then you are good to go!
 
 * **Running**
