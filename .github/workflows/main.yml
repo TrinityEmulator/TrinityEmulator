@@ -1,0 +1,47 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Build Trinity
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: base-devel git mingw-w64-x86_64-binutils mingw-w64-x86_64-crt-git mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-make mingw-w64-x86_64-tools-git mingw-w64-x86_64-pkg-config mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winstorecompat-git mingw-w64-x86_64-libmangle-git mingw-w64-x86_64-pixman mingw-w64-x86_64-SDL2 mingw-w64-x86_64-glib2 mingw-w64-x86_64-capstone mingw-w64-x86_64-glfw
+      - name: CI-Build
+        run: |
+          cp /mingw64/bin/ar.exe /mingw64/bin/x86_64-w64-mingw32-ar.exe
+          cp /mingw64/bin/ranlib.exe /mingw64/bin/x86_64-w64-mingw32-ranlib.exe
+          cp /mingw64/bin/windres.exe /mingw64/bin/x86_64-w64-mingw32-windres.exe 
+          cp /mingw64/bin/objcopy.exe /mingw64/bin/x86_64-w64-mingw32-objcopy.exe
+          cp /mingw64/bin/nm.exe /mingw64/bin/x86_64-w64-mingw32-nm.exe
+          cp /mingw64/bin/strip.exe /mingw64/bin/x86_64-w64-mingw32-strip.exe
+          ./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl --target-list=x86_64-softmmu --disable-werror
+          make -j$(nproc)
+          
