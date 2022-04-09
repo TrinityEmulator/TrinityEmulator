@@ -164,3 +164,6 @@ config-host.mak
 config.status
 roms/vgabios/config.mak
 .log.txt
+config-all-devices.mak
+config-host.h
+roms/seabios/config.mak
