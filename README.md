@@ -70,7 +70,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
     `./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl  --target-list=x86_64-softmmu --disable-werror`
 * **Compile**
 
-    After the configuration, simply type `make install -j${#threads}`, where `#threads` is the number of threads for compiling.
+    After the configuration, simply type `make install -j$(nproc)`.
 
 * **Run the Built Trinity**
 
