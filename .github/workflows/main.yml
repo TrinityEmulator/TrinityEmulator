@@ -43,5 +43,5 @@ jobs:
           cp /mingw64/bin/nm.exe /mingw64/bin/x86_64-w64-mingw32-nm.exe
           cp /mingw64/bin/strip.exe /mingw64/bin/x86_64-w64-mingw32-strip.exe
           ./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl --target-list=x86_64-softmmu --disable-werror
-          make -j$(nproc)
+          make -j16
           
