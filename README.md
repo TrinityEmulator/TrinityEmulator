@@ -21,6 +21,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
     - 4-core CPU
     - 4 GB memory
     - 1920x1080 display
+    - 64 GB storage
 
 * **Software Prerequisites**
   1. Ensure that you have turned on Intel VT in the BIOS settings.
