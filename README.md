@@ -2,6 +2,9 @@
 ![version](https://img.shields.io/badge/Version-Beta-yellow "Beta") ![license](https://img.shields.io/badge/GuestOS-Androidx86-green "Android") ![license](https://img.shields.io/badge/Licence-GPLv2-blue.svg "Apache") ![status](https://github.com/TrinityEmulator/TrinityEmulator/actions/workflows/main.yml/badge.svg)
 
 This is the repo for holding the code of Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
+<div >
+<img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif width=30%>
+</div>
 
 ### Code Organization
 Trinity is based on QEMU 5.0. Most of the code here remains consistent with the upstream QEMU, while our modifications are mostly decoupled modules. Therefore it's easy to upgrade to higher versions of QEMU (tested also on QEMU 5.1). We detail our modifications as follows:
