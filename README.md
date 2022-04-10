@@ -44,8 +44,10 @@ Before you can enjoy Trinity, you may see options to run without installation or
     
   - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
 
+We recommend running *with* installation as it gives more storage and is generally more stable.
+
 ### Usages
-Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even ARM-based ones! For advanced developing and problem resolving techniques, refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages).
+Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even ARM-based ones! For advanced developing and problem resolving techniques, refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages) (particularly if Trinity freezes).
 
 ### Result Reproducing
 
