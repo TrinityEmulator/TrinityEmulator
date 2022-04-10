@@ -2,7 +2,9 @@
 ![version](https://img.shields.io/badge/Version-Beta-yellow "Beta") ![license](https://img.shields.io/badge/GuestOS-Androidx86-green "Android") ![license](https://img.shields.io/badge/Licence-GPLv2-blue.svg "Apache") ![status](https://github.com/TrinityEmulator/TrinityEmulator/actions/workflows/main.yml/badge.svg)
 
 This is the repo for holding the code of Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
-<div >
+
+<div align=center>
+<img src=https://user-images.githubusercontent.com/96227984/162603121-267b3496-60cd-448a-89d3-8a6664b85f1e.gif width=45%>
 <img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif width=45%>
 </div>
 
