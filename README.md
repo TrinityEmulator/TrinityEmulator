@@ -36,7 +36,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 * **Running the Released Binary**
 
     We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/download/Trinity-init-release/Trinity.zip). Download and extract the ZIP file, double-click the executable `Trinity.exe` in the extracted folder to run.
-### Guest OS Installation
+### 3. Guest OS Installation
 
 Before you can enjoy Trinity, you may see options to run without installation or to install the Android-x86 image during system boot. 
     
