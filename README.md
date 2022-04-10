@@ -49,7 +49,7 @@ Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@O
 
 ### Result Reproducing
 
-As an academic project, it's essential for readers of our paper to be able to reproduce our claimed results. We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides for running our experiments independently.
+As an academic project, it's essential for readers of our paper to be able to reproduce our claimed results. We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides and videos for running our experiments independently.
 
 Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/wiki#reproducing-results) for more details.
 
