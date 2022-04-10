@@ -8,7 +8,7 @@ This is the repo for holding the code of Trinity---an Android emulator designed 
 <img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif width=45%>
 </div>
 
-### Code Organization
+### 1. Code Organization
 Trinity is based on QEMU 5.0. Most of the code here remains consistent with the upstream QEMU, while our modifications are mostly decoupled modules. Therefore it's easy to upgrade to higher versions of QEMU (tested also on QEMU 5.1). We detail our modifications as follows:
 
 |  Module  |  Purpose  |
@@ -18,7 +18,7 @@ Trinity is based on QEMU 5.0. Most of the code here remains consistent with the 
 
 Other minor changes to the vanilla QEMU includ the general keyboard mapping and input device to achieve cross-platform compatibility.
 
-### Run Trinity
+### 2. Run Trinity
 
 * **Hardware Requirements**
 
@@ -46,16 +46,16 @@ Before you can enjoy Trinity, you may see options to run without installation or
 
 We recommend running *with* installation as it gives more storage and is generally more stable.
 
-### Usages
+### 4. Usages
 Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even ARM-based ones! For advanced developing and problem resolving techniques, refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages) (particularly if Trinity freezes).
 
-### Result Reproducing
+### 5. Result Reproducing
 
 We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides and videos for running our experiments independently.
 
 Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/wiki#reproducing-results) for more details.
 
-### Build
+### 6. Build
 
 We use git submodule to hold some of the essential modules. Thus, after `git clone`, you should also run `git submodule update --init --recursive` at the repo's root directory.
 
@@ -84,7 +84,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
     We provide a proxy executable for running Trinity. Therefore, all you need to do is: 
     Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the executable (`Trinity.exe`) we release [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-init-release), put them at the root directory of the repo, and execute the Batch script at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
 
-### Developing
+### 7. Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
-### Licensing 
+### 8. Licensing 
 Our code is under the GPLv2 license.
