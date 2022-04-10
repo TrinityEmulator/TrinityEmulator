@@ -24,9 +24,9 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 
     We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is more tested than others. Other **minimal** requirements include:
     - 4-core CPU
-    - 4 GB memory
+    - 8 GB memory
     - 1920x1080 display
-    - 64 GB storage
+    - 128 GB storage
 
 * **Software Prerequisites**
   1. Ensure that you have turned on Intel VT in the BIOS settings.
