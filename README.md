@@ -22,16 +22,26 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 
 * **Hardware Requirements**
 
-    We highly recommend you run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is more tested than others. Other **minimal** requirements include:
+    You should run Trinity on a *WinTel (Windows on Intel) machine with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible*, as this hardware/software setting is much more tested than others. **Minimal** hardware configurations include:
     - 4-core CPU
     - 8 GB memory
     - 1920x1080 display
     - 128 GB storage
 
 * **Software Prerequisites**
-  1. Ensure that you have turned on Intel VT in the BIOS settings.
+  1. Ensure that you have turned on Intel VT in the BIOS settings. By default, this is turned on for most PCs.
   2. Install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/tag/v7.6.5), install instructions [here](https://github.com/intel/haxm/wiki/Installation-Instructions-on-Windows)). 
-  3. And then you are good to go!
+  3. You should turn off Windows' Hyper-V if it's enabled as it inherently conflicts with Intel HAXM. Try the following commands in Windows Terminal: 
+      ```
+      bcdedit /set hypervisorlaunchtype off
+      DISM /Online /Disable-Feature:Microsoft-Hyper-V
+      ```
+      To turn Hyper-V back on later if you need, try:
+      ```
+      bcdedit /set hypervisorlaunchtype auto
+      Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+      DISM /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V
+      ```
 
 * **Running the Released Binary**
 
