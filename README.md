@@ -22,7 +22,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 
 * **Hardware Requirements**
 
-    You should run Trinity on a *WinTel (Windows on Intel) machine, with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible* (no dedicated GPU is also acceptable), as this hardware/software setting is much more tested than others. **Minimal** hardware configurations include:
+    You should run Trinity on a *WinTel (Windows on Intel) machine, with an NVIDIA dedicated GPU installed with the latest driver (over version 497.09) if possible* (no dedicated GPU is also acceptable), as this hardware/software combination is much more tested than the others. **Minimal** hardware configurations include:
     - 4-core CPU
     - 8 GB memory
     - 1920x1080 display
