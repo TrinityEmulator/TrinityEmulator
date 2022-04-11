@@ -92,7 +92,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 * **Run the Built Trinity**
 
     We provide a proxy executable for running Trinity. Therefore, all you need to do is: 
-    Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the executable (`Trinity.exe`) packed in [the Trinity.zip file](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-Release), put them at the root directory of the repo, and execute the Batch script at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
+    Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the executable (`Trinity.exe`) packed in [the Trinity.zip file](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-Release), put them at the root directory of the repo, and execute the executable at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
 
 ### 7. Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
