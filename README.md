@@ -31,7 +31,7 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 * **Software Prerequisites**
   1. Ensure that you have turned on Intel VT in the BIOS settings. By default, this is turned on for most PCs.
   2. Install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/download/v7.6.5/haxm-windows_v7_6_5.zip). Extract the downloaded ZIP file, and simply double-click `haxm-7.6.5-setup.exe` to install. 
-  3. You should turn off Windows' Hyper-V if it's enabled as it inherently conflicts with Intel HAXM. Try the following commands in Windows Terminal: 
+  3. You should turn off Windows' Hyper-V if it's enabled ([how to determine Hyper-V's state](https://docs.microsoft.com/en-us/troubleshoot/windows-client/application-management/virtualization-apps-not-work-with-hyper-v#determine-whether-the-hyper-v-hypervisor-is-running)) as it inherently conflicts with Intel HAXM. Try the following commands in Windows Terminal: 
       ```
       bcdedit /set hypervisorlaunchtype off
       DISM /Online /Disable-Feature:Microsoft-Hyper-V
