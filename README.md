@@ -67,7 +67,7 @@ Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/
 
 * **Stability.** Trinity is not yet stable, especially the version we release is that of the paper submission time to prevent recent fixes/improvements from affecting the evaluation results. Therefore, freezing and crashing can sometimes happen, normally a system reboot can resolve the issues. 
 
-The following parts of README are not important to the artifact evaluation process, feel free to skip them.
+The following parts of README are not important to the running of Trinity and result reproducing, feel free to skip them.
 
 
 ### 4. Code Organization
