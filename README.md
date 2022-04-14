@@ -1,24 +1,14 @@
 ## Trinity: Desirable Mobile Emulation through Graphics Projection
 ![version](https://img.shields.io/badge/Version-Beta-yellow "Beta") ![license](https://img.shields.io/badge/GuestOS-Androidx86-green "Android") ![license](https://img.shields.io/badge/Licence-GPLv2-blue.svg "Apache") ![status](https://github.com/TrinityEmulator/TrinityEmulator/actions/workflows/main.yml/badge.svg)
 
-This is the repo for holding the code of Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
+This is the Artifact README for Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
 
 <div align=center>
 <img src=https://user-images.githubusercontent.com/96227984/162603121-267b3496-60cd-448a-89d3-8a6664b85f1e.gif width=45%>
 <img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif width=45%>
 </div>
 
-### 1. Code Organization
-Trinity is based on QEMU 5.0. Most of the code here remains consistent with the upstream QEMU, while our modifications are mostly decoupled modules. Therefore it's easy to upgrade to higher versions of QEMU (tested also on QEMU 5.1). We detail our modifications as follows:
-
-|  Module  |  Purpose  |
-|  ----  | ----  |
-| `hw/direct-express` | This additional module implements the `data teleporting` mechanism described in our paper, which is a general-purpose data transfering pipeline between the guest and host. Leveraging a specially designed packet protocol, one can realize fast bidirectional data delivering under considerable system and data dynamics. The module here mostly serves the purpose of retrieving data from the guest and dispatches the data to a designated thread specified by the data packet. |
-| `hw/express-gpu` | This module implements the host rendering engine that leverages the shadow contexts and resource handles in the `graphics projection space` to manage real contexts and resources at the host, while drawing actual frames on a window. It also provides host-side hints for realizing `flow control`. |
-
-Other minor changes to the vanilla QEMU includ the general keyboard mapping and input device to achieve cross-platform compatibility.
-
-### 2. Run Trinity
+### 1. Getting Started with Trinity
 
 * **Hardware Requirements**
 
@@ -45,29 +35,44 @@ Other minor changes to the vanilla QEMU includ the general keyboard mapping and 
 
 * **Running the Released Binary**
 
-    We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-Release). Download and extract the ZIP file, double-click the executable `Trinity.exe` in the extracted folder to run.
-### 3. Guest OS Installation
+    We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-Release). Download and extract the ZIP file, double-click the executable `Trinity.exe` in the extracted folder to run. Press `Enter` when the boot option is `Run Android-x86 without installation`.
 
-Before you can enjoy Trinity, you may see options to run without installation or to install the Android-x86 image during system boot. 
-    
-  - The former allows you to quickly enjoy the journey but makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space). Press `Enter` on this option to run without installation.
-    
-  - The latter may involve more complex configurations. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more details.
+### 2. Detailed Instructions    
+#### 2.1 Guest OS Installation
 
-We recommend running *with* installation as it gives more storage and is generally more stable.
+Running without installation allows you to quickly see what is Trinity capable of. But it also makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
 
-### 4. Usages
+Before you can fully enjoy Trinity, you may want to install the Android-x86 image during system boot. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more detailed instructions.  
+
+#### 2.2. Usages and Problem Resolving
 Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even ARM-based ones! For advanced developing and problem resolving techniques, refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages).
 
-If Trinity freezes on certain machines (perhaps during your first boot without installation), see [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages#shutdown-and-force-shutdown). 
+If Trinity freezes on certain machines (perhaps during your first boot without installation), see [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages#shutdown-and-force-shutdown). If Trinity cannot start properly, send us the `log.txt` file in the root directory of the binary.
 
-### 5. Result Reproducing
+#### 2.3. Result Reproducing
 
 We provide 1) our own measurement data and script to reproduce the figures in our paper, and 2) detailed guides and videos for running our experiments independently.
 
 Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/wiki#reproducing-results) for more details.
 
-### 6. Build
+### 3. Artifact Claims
+
+To reproduce results similar to that shown in our paper, hardware configurations of your evaluation machines are of vital importance. This is because our key results of graphics benchmarks test the ***extreme performance*** of the evaluated emulators. In particular, even if the hardware configurations are exactly the same, the running states of the host machines (e.g., CPU/GPU occupation and heat level) can also impact the results. We recommend you check your hardware settings before evaluation as suggested [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Graphics-Benchmark#experimental-setup).
+
+The following parts of README are not important to the artifact evaluation process, feel free to skip them.
+
+
+### 4. Code Organization
+Trinity is based on QEMU 5.0. Most of the code here remains consistent with the upstream QEMU, while our modifications are mostly decoupled modules. Therefore it's easy to upgrade to higher versions of QEMU (tested also on QEMU 5.1). We detail our modifications as follows:
+
+|  Module  |  Purpose  |
+|  ----  | ----  |
+| `hw/direct-express` | This additional module implements the `data teleporting` mechanism described in our paper, which is a general-purpose data transfering pipeline between the guest and host. Leveraging a specially designed packet protocol, one can realize fast bidirectional data delivering under considerable system and data dynamics. The module here mostly serves the purpose of retrieving data from the guest and dispatches the data to a designated thread specified by the data packet. |
+| `hw/express-gpu` | This module implements the host rendering engine that leverages the shadow contexts and resource handles in the `graphics projection space` to manage real contexts and resources at the host, while drawing actual frames on a window. It also provides host-side hints for realizing `flow control`. |
+
+Other minor changes to the vanilla QEMU includ the general keyboard mapping and input device to achieve cross-platform compatibility.
+
+### 5. Build
 
 We use git submodule to hold some of the essential modules. Thus, after `git clone`, you should also run `git submodule update --init --recursive` at the repo's root directory.
 
