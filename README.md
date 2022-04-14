@@ -38,7 +38,7 @@ This is the Artifact README for Trinity---an Android emulator designed to simult
     We provide a packaged binary [here](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-Release). Download and extract the ZIP file, double-click the executable `Trinity.exe` in the extracted folder to run. Press `Enter` when the boot option is `Run Android-x86 without installation`.
 
 ### 2. Detailed Instructions    
-#### 2.1 Guest OS Installation
+#### 2.1. Guest OS Installation
 
 Running without installation allows you to quickly see what is Trinity capable of. But it also makes the virtual storage volatile (i.e., the next boot will erase all data) and small-size (up to only 8 GB available space).
 
