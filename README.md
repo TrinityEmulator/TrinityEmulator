@@ -65,7 +65,7 @@ Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/
 
 * **Reproducibility.** To reproduce results similar to that shown in our paper, hardware configurations of your evaluation machines are of vital importance. This is because our key results of graphics benchmarks test the ***extreme performance*** of the evaluated emulators. In particular, even if the hardware configurations are exactly the same, the running states of the host machines (e.g., CPU/GPU occupation and heat level) can also impact the results. We recommend you check your hardware settings before evaluation as suggested [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Graphics-Benchmark#experimental-setup).
 
-* **Stability.** Trinity is not yet stable, especially the version we release is that of the paper submission time to avoid affecting the evaluation results. Therefore, freezing and crashing can sometimes happen, normally a system reboot can resolve the issues. 
+* **Stability.** Trinity is not yet stable, especially the version we release is that of the paper submission time to prevent recent fixes/improvements from affecting the evaluation results. Therefore, freezing and crashing can sometimes happen, normally a system reboot can resolve the issues. 
 
 The following parts of README are not important to the artifact evaluation process, feel free to skip them.
 
