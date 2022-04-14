@@ -45,9 +45,15 @@ Running without installation allows you to quickly see what is Trinity capable o
 Before you can fully enjoy Trinity, you may want to install the Android-x86 image during system boot. Refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Guest-OS-Installation-Guide) for more detailed instructions.  
 
 #### 2.2. Usages and Problem Resolving
-Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even ARM-based ones! For advanced developing and problem resolving techniques, refer to our [wiki](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages).
+Use Trinity as you use your mobile phones. Trinity's guest OS is packed with [@OpenGApps](https://github.com/opengapps/opengapps), therefore you can install any apps from the Google Play Store we host, even ARM-based ones! Other important notes are listed below.
 
-If Trinity freezes on certain machines (perhaps during your first boot without installation), see [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages#shutdown-and-force-shutdown). If Trinity cannot start properly, send us the `log.txt` file in the root directory of the binary.
+* For establishing `ADB` connection with Trinity, see [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages#adb-connection).
+
+* If Trinity freezes on certain machines (perhaps during your first boot without installation), see [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages#shutdown-and-force-shutdown). 
+
+* If Trinity cannot function properly after installation, see [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Advanced-Usages#formatting-the-disk).
+
+* If Trinity cannot start properly, send us the `log.txt` file in the root directory of the binary.
 
 #### 2.3. Result Reproducing
 
@@ -57,7 +63,9 @@ Please go to our [wiki page](https://github.com/TrinityEmulator/TrinityEmulator/
 
 ### 3. Artifact Claims
 
-To reproduce results similar to that shown in our paper, hardware configurations of your evaluation machines are of vital importance. This is because our key results of graphics benchmarks test the ***extreme performance*** of the evaluated emulators. In particular, even if the hardware configurations are exactly the same, the running states of the host machines (e.g., CPU/GPU occupation and heat level) can also impact the results. We recommend you check your hardware settings before evaluation as suggested [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Graphics-Benchmark#experimental-setup).
+* **Reproducibility**. To reproduce results similar to that shown in our paper, hardware configurations of your evaluation machines are of vital importance. This is because our key results of graphics benchmarks test the ***extreme performance*** of the evaluated emulators. In particular, even if the hardware configurations are exactly the same, the running states of the host machines (e.g., CPU/GPU occupation and heat level) can also impact the results. We recommend you check your hardware settings before evaluation as suggested [here](https://github.com/TrinityEmulator/TrinityEmulator/wiki/Graphics-Benchmark#experimental-setup).
+
+* **Stability.** Trinity is not yet stable, especially the version we release is that of the paper submission time to avoid affecting the evaluation results. Therefore, freezing and crashing can sometimes happen, normally a system reboot can resolve the issues. 
 
 The following parts of README are not important to the artifact evaluation process, feel free to skip them.
 
