@@ -1,3 +1,13 @@
+/**
+ * @file egl_sync.c
+ * @author Di Gao
+ * @brief Create and handling sync objects
+ * @version 0.1
+ * @date 2022-08-02
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/egl_sync.h"
 #include "express-gpu/glv3_resource.h"
 

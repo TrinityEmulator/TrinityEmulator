@@ -1,3 +1,13 @@
+/**
+ * @file egl_window_wgl.c
+ * @author Di Gao
+ * @brief Create lightweight surface using Windows' WGL
+ * @version 0.1
+ * @date 2021-11-24
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/egl_window.h"
 #include <glib.h>
 

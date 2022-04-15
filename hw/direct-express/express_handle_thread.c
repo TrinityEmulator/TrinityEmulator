@@ -1,3 +1,13 @@
+/**
+ * @file express_handle_thread.c
+ * @author Di Gao
+ * @brief Thread for handling call data. Created by the data distribution thread.
+ * @version 0.1
+ * @date 2020-12-31
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "qemu/osdep.h"
 #include "qemu/thread.h"
 #include "direct-express/express_handle_thread.h"

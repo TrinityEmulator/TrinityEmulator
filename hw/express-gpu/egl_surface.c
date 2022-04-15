@@ -1,3 +1,13 @@
+/**
+ * @file egl_surface.c
+ * @author Di Gao
+ * @brief Create and manage the host surfaces for drawing
+ * @version 0.1
+ * @date 2022-08-02
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/egl_surface.h"
 #include "express-gpu/egl_display.h"
 

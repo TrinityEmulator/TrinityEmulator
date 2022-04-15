@@ -1,3 +1,13 @@
+/**
+ * @file egl_context.c
+ * @author Di Gao
+ * @brief Handling EGL contexts
+ * @version 0.1
+ * @date 2021-08-02
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/egl_context.h"
 #include "express-gpu/glv3_context.h"
 

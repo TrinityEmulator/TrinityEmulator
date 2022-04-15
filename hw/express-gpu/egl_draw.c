@@ -1,3 +1,13 @@
+/**
+ * @file egl_draw.c
+ * @author Di Gao
+ * @brief Critical drawing operations using host OpenGL
+ * @version 0.1
+ * @date 2021-08-02
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/egl_draw.h"
 #include "express-gpu/egl_surface.h"
 #include "express-gpu/egl_context.h"

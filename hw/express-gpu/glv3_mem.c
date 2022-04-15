@@ -1,5 +1,13 @@
-#define STD_DEBUG_LOG
-
+/**
+ * @file glv3_context.c
+ * @author Di Gao
+ * @brief Translation of OpenGL v3 buffer-related functions
+ * @version 0.1
+ * @date 2022-05-14
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/glv3_mem.h"
 
 GLuint get_buffer_binding_id(void *context, GLenum target);

@@ -1,7 +1,7 @@
 /**
  * @file egl_trans.c
- * @author gaodi (gaodi.sec@qq.com)
- * @brief
+ * @author Di Gao
+ * @brief Decode wrapped call data to EGL call ID and parameters
  * @version 0.1
  * @date 2020-11-25
  *

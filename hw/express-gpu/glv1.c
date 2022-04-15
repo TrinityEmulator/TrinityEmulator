@@ -1,3 +1,13 @@
+/**
+ * @file glv1.c
+ * @author Di Gao
+ * @brief Translation of OpenGL v1 pipeline functions
+ * @version 0.1
+ * @date 2021-08-31
+ * 
+ * @copyright Copyright (c) 2021
+ * 
+ */
 #include "express-gpu/glv1.h"
 
 static GLuint draw_texi_vao = 0;

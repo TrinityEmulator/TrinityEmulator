@@ -1,3 +1,14 @@
+/**
+ * @file offscreen_render_thread.c
+ * @author Di Gao
+ * @brief Virtual GPU device mounted on the data transfering PCI device. 
+ * Receive all distributed call data and create offscreen rendering surface according to apps' requests. 
+ * @version 0.1
+ * @date 2020-12-31
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "direct-express/direct_express_distribute.h"
 #include "direct-express/express_log.h"
 #include "express-gpu/glv3_context.h"

@@ -6,24 +6,7 @@
 
 #include "express-gpu/glv3_context.h"
 
-
-
 #define BUFFER_MULTIPLY_FACTOR 2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 GLint set_vertex_attrib_data(void *context, GLuint index, GLuint offset, GLuint length, const void *pointer);
 
@@ -36,8 +19,6 @@ void d_glVertexAttribIPointer_offset(void *context, GLuint index, GLint size, GL
 
 void d_glVertexAttribPointer_with_bound(void *context, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLintptr pointer);
 void d_glVertexAttribIPointer_with_bound(void *context, GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr pointer);
-
-
 
 void d_glBindVertexArray_special(void *context, GLuint array);
 

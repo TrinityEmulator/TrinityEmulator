@@ -1,3 +1,15 @@
+/**
+ * @file direct_express_distribute.c
+ * @author Di Gao
+ * @brief Use polling to retrieve call data and distribute to other drawing threads. 
+ * Also responsible for data recycling.
+ * @version 0.1
+ * @date 2020-11-25
+ *
+ * @copyright Copyright (c) 2020
+ *
+ */
+
 #include "direct-express/direct_express_distribute.h"
 #include "direct-express/express_handle_thread.h"
 #include "direct-express/express_log.h"

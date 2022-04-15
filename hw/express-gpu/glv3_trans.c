@@ -1,3 +1,13 @@
+/**
+ * @file egl_trans.c
+ * @author Di Gao
+ * @brief Decode wrapped call data to OpenGL call ID and parameters
+ * @version 0.1
+ * @date 2020-11-25
+ * 
+ * @copyright Copyright (c) 2020
+ *
+ */
 #include "express-gpu/glv3_trans.h"
 #include "express-gpu/offscreen_render_thread.h"
 

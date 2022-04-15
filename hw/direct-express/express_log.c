@@ -1,3 +1,13 @@
+/**
+ * @file express_log.c
+ * @author Di Gao
+ * @brief Simple log device built on the data transfer machanism.
+ * @version 0.1
+ * @date 2020-12-31
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "direct-express/express_log.h"
 #include "direct-express/express_device_common.h"
 #define LOG_DIR "log//call"

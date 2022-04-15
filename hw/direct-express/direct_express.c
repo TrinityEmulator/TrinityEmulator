@@ -1,4 +1,13 @@
-
+/**
+ * @file direct_express.c
+ * @author Di Gao
+ * @brief Coupling non-PCI virtual device
+ * @version 0.1
+ * @date 2020-10-20
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "direct-express/direct_express.h"
 #include "direct-express/direct_express_distribute.h"
 #include "direct-express/express_log.h"

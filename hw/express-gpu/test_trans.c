@@ -1,3 +1,13 @@
+/**
+ * @file offscreen_render_thread.c
+ * @author Di Gao
+ * @brief Testing translation
+ * @version 0.1
+ * @date 2020-12-31
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "express-gpu/test_trans.h"
 #include "direct-express/express_log.h"
 

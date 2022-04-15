@@ -1,3 +1,13 @@
+/**
+ * @file express_gpu_render.c
+ * @author Di Gao
+ * @brief Create the initial host window and initialize OpenGL contexts.
+ * @version 0.1
+ * @date 2020-12-10
+ * 
+ * @copyright Copyright (c) 2020
+ * 
+ */
 #include "qemu/osdep.h"
 #include "qemu/atomic.h"
 
