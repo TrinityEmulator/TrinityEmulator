@@ -113,3 +113,15 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
 ### 7. Licensing 
 Our code is under the GPLv2 license.
+
+### 8. Reference
+Trinity's paper is to be appear in OSDI'22. Here's the paper's reference.
+```
+@inproceedings {shen2021vegito,
+    author = {Hao Lin and Di Gao and Zhenhua Li and Chengen Huang and Liangyi Gong and Feng Qian and Yunhao Liu and Tianyin Xu},
+    title = {Trinity: Desirable Mobile Emulation through Graphics Projection},
+    booktitle = {16th {USENIX} Symposium on Operating Systems Design and Implementation ({OSDI} 22)},
+    year = {2022},
+    publisher = {{USENIX} Association}
+  }
+```
