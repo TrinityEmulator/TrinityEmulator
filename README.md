@@ -115,7 +115,7 @@ To debug the code, you can use the GDB provided by MSYS2. You may need to examin
 Our code is under the GPLv2 license.
 
 ### 8. Reference
-Trinity's paper is to appear in OSDI'22. Here's the paper's reference.
+Trinity's paper is to appear in OSDI'22. If you use Trinity in your work, please reference it using
 ```
 @inproceedings {shen2021vegito,
     author = {Hao Lin and Di Gao and Zhenhua Li and Chengen Huang and Liangyi Gong and Feng Qian and Yunhao Liu and Tianyin Xu},
