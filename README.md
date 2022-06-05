@@ -120,7 +120,7 @@ Trinity's paper is to appear in OSDI'22. If you use Trinity in your work, please
 ```
 @inproceedings {di2022trinity,
     author = {Di Gao and Hao Lin and Zhenhua Li and Chengen Huang and Liangyi Gong and Feng Qian and Yunhao Liu and Tianyin Xu},
-    title = {Trinity: Desirable Mobile Emulation through Graphics Projection},
+    title = {Trinity: High-Performance Mobile Emulation through Graphics Projection},
     booktitle = {16th {USENIX} Symposium on Operating Systems Design and Implementation ({OSDI} 22)},
     year = {2022},
     publisher = {{USENIX} Association}
