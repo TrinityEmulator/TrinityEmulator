@@ -12,7 +12,7 @@
 
 typedef HDC EGLNativeDisplayType;
 typedef HBITMAP EGLNativePixmapType;
-typedef HWND EGLNativeWindowType;
+typedef void *EGLNativeWindowType;
 
 #elif defined(__ANDROID__) || defined(ANDROID)
 
@@ -68,12 +68,6 @@ typedef unsigned short int khronos_uint16_t;
 #ifndef KHRONOS_MAX_ENUM
 #define KHRONOS_MAX_ENUM 0x7FFFFFFF
 #endif
-
-
-
-
-
-
 
 typedef khronos_uint64_t khronos_utime_nanoseconds_t;
 typedef khronos_int64_t khronos_stime_nanoseconds_t;

@@ -5,7 +5,6 @@
 #include <windows.h>
 #include "wglext.h"
 
-
 #define LIST_WGL_FUNCTIONS(X)                            \
     X(HGLRC, wglCreateContext, (HDC hdc))                \
     X(BOOL, wglDeleteContext, (HGLRC hglrc))             \
@@ -14,7 +13,6 @@
     X(HGLRC, wglGetCurrentContext, (void))               \
     X(HDC, wglGetCurrentDC, (void))                      \
     X(PROC, wglGetProcAddress, (LPCSTR func_name))
-
 
 #define LIST_WGL_EXT_FUNCTIONS(X) \
     X(BOOL, wglGetPixelFormatAttribivARB, (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues))

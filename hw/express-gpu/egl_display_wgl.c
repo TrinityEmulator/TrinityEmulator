@@ -1,12 +1,13 @@
+
 /**
  * @file egl_display_wgl.c
  * @author Hao Lin
  * @brief Query display configs and translate to EGL ones on Windows using WGL
  * @version 0.1
  * @date 2021-05-29
- * 
+ *
  * @copyright Copyright (c) 2021
- * 
+ *
  */
 #include "express-gpu/egl_display_wgl.h"
 #include "direct-express/express_log.h"

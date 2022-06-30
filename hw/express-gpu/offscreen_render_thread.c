@@ -1,22 +1,29 @@
+
+
 /**
  * @file offscreen_render_thread.c
  * @author Di Gao
- * @brief Virtual GPU device mounted on the data transfering PCI device. 
- * Receive all distributed call data and create offscreen rendering surface according to apps' requests. 
+ * @brief Virtual GPU device mounted on the data transfering PCI device.
+ * Receive all distributed call data and create offscreen rendering surface according to apps' requests.
  * @version 0.1
  * @date 2020-12-31
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 #include "direct-express/direct_express_distribute.h"
+
 #include "direct-express/express_log.h"
+
 #include "express-gpu/glv3_context.h"
 #include "express-gpu/offscreen_render_thread.h"
 #include "express-gpu/express_gpu_render.h"
+
 #include "express-gpu/glv3_trans.h"
 #include "express-gpu/egl_trans.h"
 #include "express-gpu/test_trans.h"
+
+#include "qemu/atomic.h"
 
 static GHashTable *render_thread_contexts = NULL;
 
@@ -37,49 +44,50 @@ void release_call_special(Direct_Express_Call *call, int notify);
 
 int create_call_from_cluster(uint64_t *send_buf, unsigned char *save_buf, Direct_Express_Call *pre_call, Direct_Express_Queue_Elem *pre_elem, Guest_Mem *pre_guest_mem, Scatter_Data *pre_scatter_data);
 
-static void g_window_surface_map_destroy(gpointer data);
+static gboolean g_window_Surface_destroy(gpointer key, gpointer data, gpointer user_data);
 
-static void g_p_surface_map_destroy(gpointer data);
+static void g_surface_map_destroy(gpointer data);
 
 static void g_context_map_destroy(gpointer data);
 
-static void g_image_map_destroy(gpointer data);
+static void gbuffer_map_destroy(gpointer data);
 
 void decode_invoke(Thread_Context *context, Direct_Express_Call *call)
 {
 
     Render_Thread_Context *render_context = (Render_Thread_Context *)context;
 
-    express_printf("enter decode invoke\n");
-
     uint64_t fun_id = GET_FUN_ID(call->id);
 
     if (fun_id >= 200000)
     {
-        express_printf("test decode invoke\n");
 
         test_decode_invoke(render_context, call);
     }
     else if (fun_id > 10000)
     {
-        express_printf("egl decode invoke %llu\n", fun_id);
 
         egl_decode_invoke(render_context, call);
     }
     else if (fun_id == 9999)
     {
-        express_printf("cluster decode invoke %llu\n", fun_id);
 
         cluster_decode_invoke(context, call);
     }
     else
     {
 
-        express_printf("gl decode invoke %llu\n", fun_id);
         gl3_decode_invoke(render_context, call);
     }
     if (render_context->opengl_context != NULL)
     {
+#ifdef ENABLE_OPENGL_DEBUG
+        GLenum error_code = glGetError();
+        if (error_code != GL_NO_ERROR)
+        {
+            printf("#fun_id %llu get error %lx\n", fun_id, error_code);
+        }
+#endif
     }
     return;
 }
@@ -267,7 +275,7 @@ Thread_Context *get_render_thread_context(uint64_t type_id, uint64_t thread_id, 
         render_process_contexts = g_hash_table_new(g_direct_hash, g_direct_equal);
     }
 
-    Thread_Context *context = g_hash_table_lookup(render_thread_contexts, GINT_TO_POINTER(unique_id));
+    Thread_Context *context = g_hash_table_lookup(render_thread_contexts, GUINT_TO_POINTER(unique_id));
 
     if (context == NULL)
     {
@@ -276,43 +284,44 @@ Thread_Context *get_render_thread_context(uint64_t type_id, uint64_t thread_id, 
         context = thread_context_create(thread_id, type_id, sizeof(Render_Thread_Context), info);
         Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
 
-        Process_Context *process = g_hash_table_lookup(render_process_contexts, GINT_TO_POINTER(process_id));
+        Process_Context *process = g_hash_table_lookup(render_process_contexts, GUINT_TO_POINTER(process_id));
         if (process == NULL)
         {
             express_printf("create new process context\n");
             process = g_malloc(sizeof(Process_Context));
             process->context_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_context_map_destroy);
 
-            process->surface_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_p_surface_map_destroy);
-            process->native_window_surface_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_window_surface_map_destroy);
-            process->gbuffer_image_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_image_map_destroy);
+            process->surface_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_surface_map_destroy);
+
+            process->gbuffer_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, gbuffer_map_destroy);
             process->egl_sync_resource = g_malloc(sizeof(Resource_Map_Status));
             process->egl_sync_resource->map_size = 0;
             process->egl_sync_resource->max_id = 0;
             process->egl_sync_resource->resource_id_map = NULL;
             process->thread_cnt = 0;
 
-            g_hash_table_insert(render_process_contexts, GINT_TO_POINTER(process_id), (gpointer)process);
+            g_hash_table_insert(render_process_contexts, GUINT_TO_POINTER(process_id), (gpointer)process);
         }
-        process->thread_cnt += 1;
+        atomic_inc(&(process->thread_cnt));
+
         thread_context->process_context = process;
-        g_hash_table_insert(render_thread_contexts, GINT_TO_POINTER(unique_id), (gpointer)context);
+        g_hash_table_insert(render_thread_contexts, GUINT_TO_POINTER(unique_id), (gpointer)context);
     }
     return context;
 }
 
 void remove_render_thread_context(uint64_t type_id, uint64_t thread_id, uint64_t process_id, uint64_t unique_id, struct Express_Device_Info *inf)
 {
-    Process_Context *process = g_hash_table_lookup(render_process_contexts, GINT_TO_POINTER(process_id));
+    Process_Context *process = g_hash_table_lookup(render_process_contexts, GUINT_TO_POINTER(process_id));
     if (process != NULL)
     {
         if (process->thread_cnt == 1)
         {
-            g_hash_table_remove(render_process_contexts, GINT_TO_POINTER(process_id));
+            g_hash_table_remove(render_process_contexts, GUINT_TO_POINTER(process_id));
         }
     }
 
-    g_hash_table_remove(render_thread_contexts, GINT_TO_POINTER(unique_id));
+    g_hash_table_remove(render_thread_contexts, GUINT_TO_POINTER(unique_id));
 }
 
 void render_context_init(Thread_Context *context)
@@ -336,24 +345,11 @@ void render_context_init(Thread_Context *context)
     }
 }
 
-static void g_window_surface_map_destroy(gpointer data)
-{
-
-    Window_Buffer *real_surface = (Window_Buffer *)data;
-    if (real_surface->type == WINDOW_SURFACE)
-    {
-        render_surface_destroy(real_surface);
-    }
-}
-
-static void g_p_surface_map_destroy(gpointer data)
+static void g_surface_map_destroy(gpointer data)
 {
     Window_Buffer *real_surface = (Window_Buffer *)data;
-    if (real_surface->type == P_SURFACE)
-    {
 
-        render_surface_destroy(real_surface);
-    }
+    render_surface_destroy(real_surface);
 }
 
 static void g_context_map_destroy(gpointer data)
@@ -366,44 +362,21 @@ static void g_context_map_destroy(gpointer data)
     }
     else
     {
-
-#ifdef USE_GLFW_AS_WGL
-
-#else
-        egl_destroyContext(real_context->window);
-#endif
-        send_message_to_main_window(MAIN_DESTROY_CONTEXT, real_context);
+        express_printf("destroy context %llx\n", real_context);
+        opengl_context_destroy(real_context);
+        g_free(real_context);
     }
 }
 
-static void g_image_map_destroy(gpointer data)
+static void gbuffer_map_destroy(gpointer data)
 {
-    EGL_Image *real_image = (EGL_Image *)data;
+    Graphic_Buffer *gbuffer = (Graphic_Buffer *)data;
 
-    if (real_image->target != EGL_GL_TEXTURE_2D)
-    {
-        if (real_image->fbo_texture != 0)
-        {
-            send_message_to_main_window(MAIN_DESTROY_ONE_TEXTURE, real_image->fbo_texture);
-        }
-        if (real_image->fbo_texture_reverse != 0)
-        {
-            send_message_to_main_window(MAIN_DESTROY_ONE_TEXTURE, real_image->fbo_texture_reverse);
-        }
-    }
+    gbuffer->remain_life_time--;
+    gbuffer->is_dying = 1;
 
-    if (real_image->fbo_sync != NULL)
-    {
-        send_message_to_main_window(MAIN_DESTROY_ONE_SYNC, real_image->fbo_sync);
-    }
-    if (real_image->fbo_sync_need_delete != NULL)
-    {
-        send_message_to_main_window(MAIN_DESTROY_ONE_SYNC, real_image->fbo_sync_need_delete);
-    }
+    send_message_to_main_window(MAIN_DESTROY_GBUFFER, gbuffer);
 
-    set_image_gbuffer_id(real_image, NULL, real_image->gbuffer_id);
-
-    g_free(real_image);
     return;
 }
 
@@ -411,12 +384,6 @@ void render_context_destroy(Thread_Context *context)
 {
     Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
     Process_Context *process_context = thread_context->process_context;
-
-#ifdef USE_GLFW_AS_WGL
-    glfwMakeContextCurrent(NULL);
-#else
-    egl_makeCurrent(NULL);
-#endif
 
     if (thread_context->render_double_buffer_read != NULL)
     {
@@ -428,23 +395,21 @@ void render_context_destroy(Thread_Context *context)
     }
     if (thread_context->opengl_context != NULL)
     {
-        express_printf("render context destroy %llx\n", thread_context->opengl_context);
+        express_printf("render context destroy thread %llx context %llx when current window %llx\n", thread_context, thread_context->opengl_context, thread_context->opengl_context->window);
 
+        egl_makeCurrent(NULL);
         thread_context->opengl_context->is_current = 0;
     }
 
-    process_context->thread_cnt -= 1;
-
-    if (process_context->thread_cnt == 0)
+    express_printf("process destroy cnt %d\n", process_context->thread_cnt);
+    if (atomic_dec_fetch(&(process_context->thread_cnt)) == 0)
     {
-
+        express_printf("process destroy everything\n");
         g_hash_table_destroy(process_context->context_map);
 
         g_hash_table_destroy(process_context->surface_map);
 
-        g_hash_table_destroy(process_context->native_window_surface_map);
-
-        g_hash_table_destroy(process_context->gbuffer_image_map);
+        g_hash_table_destroy(process_context->gbuffer_map);
 
         send_message_to_main_window(MAIN_DESTROY_ALL_EGLSYNC, process_context->egl_sync_resource);
 

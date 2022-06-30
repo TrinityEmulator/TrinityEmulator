@@ -1,3 +1,4 @@
+
 /**
  * @file glv1.c
  * @author Di Gao
@@ -8,8 +9,8 @@
  * @copyright Copyright (c) 2021
  * 
  */
-#include "express-gpu/glv1.h"
 
+#include "express-gpu/glv1.h"
 static GLuint draw_texi_vao = 0;
 static GLuint draw_texi_program = 0;
 static GLint draw_texi_texture_id_loc = 0;
@@ -30,7 +31,25 @@ void d_glTexEnvx_special(void *context, GLenum target, GLenum pname, GLfixed par
 
 void d_glTexParameterx_special(void *context, GLenum target, GLenum pname, GLint param)
 {
-    glTexParameteri(target, pname, param);
+    Opengl_Context *opengl_context = (Opengl_Context *)context;
+    if (target == GL_TEXTURE_EXTERNAL_OES)
+    {
+        if (opengl_context->current_active_texture != 0)
+        {
+            glActiveTexture(GL_TEXTURE0);
+        }
+        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        glTexParameterx(GL_TEXTURE_2D, pname, param);
+        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+        if (opengl_context->current_active_texture != 0)
+        {
+            glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        }
+    }
+    else
+    {
+        glTexParameteri(target, pname, param);
+    }
 }
 
 void d_glShadeModel_special(void *context, GLenum mode)
@@ -147,11 +166,12 @@ void prepare_draw_texi()
 
         GLint linked;
         glGetProgramiv(program_id, GL_LINK_STATUS, &linked);
+        express_printf("linked %d program %u\n", linked, program_id);
         if (!linked)
         {
             GLint infoLen = 0;
             glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &infoLen);
-            printf("GL_INFO_LOG_LENGTH %d", infoLen);
+            printf("GL_INFO_LOG_LENGTH %d\n", infoLen);
             if (infoLen > 1)
             {
                 char *infoLog = (char *)malloc(sizeof(char) * infoLen);

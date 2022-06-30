@@ -1,13 +1,16 @@
 /**
- * @file egl_trans.c
- * @author Di Gao
- * @brief Decode wrapped call data to OpenGL call ID and parameters
+ * @file glv3_trans.c
+ * @author gaodi (gaodi.sec@qq.com)
+ * @brief
  * @version 0.1
  * @date 2020-11-25
- * 
+ *
  * @copyright Copyright (c) 2020
  *
  */
+
+#define STD_DEBUG_LOG
+
 #include "express-gpu/glv3_trans.h"
 #include "express-gpu/offscreen_render_thread.h"
 
@@ -17,19 +20,24 @@
 #include "express-gpu/glv3_resource.h"
 
 #include "express-gpu/glv3_context.h"
+#include "express-gpu/gl_helper.h"
 
 #include "express-gpu/glv1.h"
 
-void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call)
+void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *call)
 {
-    Render_Thread_Context *render_context = (Render_Thread_Context *)context;
+    Render_Thread_Context *render_context = (Render_Thread_Context *)r_context;
     Opengl_Context *opengl_context = render_context->opengl_context;
-    if (opengl_context == NULL && call->id != FUNID_glGetStaticValues)
+    Process_Context *process_context = render_context->process_context;
+    uint64_t fun_id = GET_FUN_ID(call->id);
+
+    if (opengl_context == NULL && call->id != FUNID_glGetStaticValues && call->id != FUNID_glBindEGLImage &&
+        call->id != FUNID_glReadGraphicBuffer && call->id != FUNID_glGraphicBufferData && call->id != FUNID_glSync)
     {
+        printf("invoke func id %llu with null context\n", fun_id);
         call->callback(call, 0);
         return;
     }
-
     Call_Para all_para[MAX_PARA_NUM];
 
     unsigned char ret_local_buf[1024 * 4];
@@ -125,6 +133,9 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
         GLenum ret = glClientWaitSync((GLsync)get_host_sync_id(opengl_context, (unsigned int)sync), flags, timeout);
         *ret_ptr = ret;
+
+        express_printf("glClientWaitSync context %llx guest %u host %llu ret %x\n", opengl_context, (unsigned int)sync,
+                       (GLsync)get_host_sync_id(opengl_context, (unsigned int)sync), ret);
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
@@ -2364,8 +2375,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             break;
         }
 
-        glGetTexParameterfv(target, pname, params);
-
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glGetTexParameterfv(GL_TEXTURE_2D, pname, params);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glGetTexParameterfv(target, pname, params);
+        }
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
         if (out_buf_len > MAX_OUT_BUF_LEN)
@@ -2453,7 +2480,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             break;
         }
 
-        glGetTexParameteriv(target, pname, params);
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glGetTexParameteriv(GL_TEXTURE_2D, pname, params);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glGetTexParameteriv(target, pname, params);
+        }
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
@@ -3314,6 +3358,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
         glGetProgramBinary((GLuint)get_host_program_id(opengl_context, (unsigned int)program), bufSize, length, binaryFormat, binary);
 
+        express_printf("glGetProgramBinary len %u format %lld\n", *length, *binaryFormat);
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
         if (out_buf_len > MAX_OUT_BUF_LEN)
@@ -3757,8 +3802,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             break;
         }
 
-        glGetTexParameterxvOES(target, pname, params);
-
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glGetTexParameterxvOES(GL_TEXTURE_2D, pname, params);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glGetTexParameterxvOES(target, pname, params);
+        }
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
         if (out_buf_len > MAX_OUT_BUF_LEN)
@@ -7883,7 +7944,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
+        express_printf("glFlush\n");
         glFlush();
     }
     break;
@@ -7905,7 +7966,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
+        express_printf("glFinish\n");
         glFinish();
     }
     break;
@@ -9681,7 +9742,8 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
+        express_printf("glWaitSync context %llx guest %u host %llu timeout %llu\n", opengl_context, (unsigned int)sync,
+                       (GLsync)get_host_sync_id(opengl_context, (unsigned int)sync), timeout);
         glWaitSync((GLsync)get_host_sync_id(opengl_context, (unsigned int)sync), flags, timeout);
     }
     break;
@@ -9837,7 +9899,8 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             printf("error! glProgramBinary program_data_len != 4 %d\n", out_buf_len);
             break;
         }
-
+        express_printf("context %llx program binary %u host %u\n", opengl_context, program,
+                       (GLuint)get_host_program_id(opengl_context, (unsigned int)program));
         d_glProgramBinary_special(opengl_context, (GLuint)get_host_program_id(opengl_context, (unsigned int)program), binaryFormat, binary, length, program_data_len);
 
         guest_read(all_para[1].data, program_data_len, 0, out_buf_len);
@@ -12151,6 +12214,8 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             break;
         }
 
+        express_printf("context %llx link program %u host %u\n", opengl_context, program,
+                       (GLuint)get_host_program_id(opengl_context, (unsigned int)program));
         d_glLinkProgram_special(opengl_context, (GLuint)get_host_program_id(opengl_context, (unsigned int)program), program_data_len);
 
         guest_read(all_para[1].data, program_data_len, 0, out_buf_len);
@@ -12736,8 +12801,8 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
-        d_glBindVertexArray_special(opengl_context, (GLuint)get_host_array_id(opengl_context, (unsigned int)array));
+        express_printf("context %llx bind vertexArray guest %u host %u\n", opengl_context, array, (GLuint)get_host_array_id(opengl_context, (unsigned int)array));
+        d_glBindVertexArray_special(opengl_context, array);
     }
     break;
 
@@ -12798,7 +12863,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
+        express_printf("glbindbuffer target %x %d\n", target, buffer);
         d_glBindBuffer_origin(opengl_context, target, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
     }
     break;
@@ -12996,7 +13061,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
+        express_printf("mapbufferrange glbindbufferRange target %x index %d buffer %d offset %lld size %lld end %lld\n", target, index, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size, offset + size);
         glBindBufferRange(target, index, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size);
     }
     break;
@@ -13441,7 +13506,10 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
         /* Define variables */
         GLenum target;
-        GLeglImageOES gbuffer_id;
+        uint64_t image;
+        GLuint texture;
+        GLuint share_texture;
+        EGLContext share_ctx;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glBindEGLImage)
@@ -13453,7 +13521,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         unsigned char *temp = NULL;
 
         temp_len = all_para[0].data_len;
-        if (temp_len < (4 + sizeof(GLeglImageOES)) * 1)
+        if (temp_len < (28) * 1)
         {
             break;
         }
@@ -13479,15 +13547,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         target = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
 
-        gbuffer_id = *(GLeglImageOES *)(temp + temp_loc);
-        temp_loc += sizeof(GLeglImageOES);
+        image = *(uint64_t *)(temp + temp_loc);
+        temp_loc += 8;
+
+        texture = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        share_texture = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        share_ctx = *(EGLContext *)(temp + temp_loc);
+        temp_loc += 8;
         /* Check length */
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        d_glBindEGLImage(opengl_context, target, gbuffer_id);
+        d_glBindEGLImage(r_context, target, image, texture, share_texture, share_ctx);
     }
     break;
 
@@ -14302,6 +14379,33 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         }
 
         glCompileShader((GLuint)get_host_shader_id(opengl_context, (unsigned int)shader));
+        GLenum error = glGetError();
+
+        if (error != GL_NO_ERROR)
+        {
+            printf("glCompileShader %x guest %u host %u\n", error, shader, (GLuint)get_host_shader_id(opengl_context, (unsigned int)shader));
+        }
+
+        GLint compiled;
+        GLuint real_shader = (GLuint)get_host_shader_id(opengl_context, (unsigned int)shader);
+        glGetShaderiv(real_shader, GL_COMPILE_STATUS, &compiled);
+
+        if (!compiled)
+        {
+            GLint infoLen = 0;
+            glGetShaderiv(real_shader, GL_INFO_LOG_LENGTH, &infoLen);
+            char source[10000];
+            int source_len;
+            glGetShaderSource(real_shader, 10000, &source_len, source);
+            printf("shader %d:\n%s\n", real_shader, source);
+            if (infoLen > 1)
+            {
+                char *infoLog = (char *)g_malloc(sizeof(char) * infoLen);
+                glGetShaderInfoLog((GLuint)get_host_shader_id(opengl_context, (unsigned int)shader), infoLen, NULL, infoLog);
+                printf("#Error compiling shader:\n%s\n", infoLog);
+                g_free(infoLog);
+            }
+        }
     }
     break;
 
@@ -14656,7 +14760,10 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
+        if (cap == GL_SCISSOR_TEST && opengl_context != NULL)
+        {
+            opengl_context->enable_scissor = 0;
+        }
         glDisable(cap);
     }
     break;
@@ -14713,6 +14820,11 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         if (temp_len < temp_loc)
         {
             break;
+        }
+
+        if (cap == GL_SCISSOR_TEST && opengl_context != NULL)
+        {
+            opengl_context->enable_scissor = 1;
         }
 
         glEnable(cap);
@@ -15838,8 +15950,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
-        glTexParameterf(target, pname, param);
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glTexParameterf(GL_TEXTURE_2D, pname, param);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glTexParameterf(target, pname, param);
+        }
     }
     break;
 
@@ -15905,7 +16033,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             break;
         }
 
-        glTexParameteri(target, pname, param);
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glTexParameteri(GL_TEXTURE_2D, pname, param);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glTexParameteri(target, pname, param);
+        }
     }
     break;
 
@@ -16507,6 +16652,8 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
             break;
         }
 
+        express_printf("context %llx use program guest %u host %u\n", opengl_context, program,
+                       (GLuint)get_host_program_id(opengl_context, (unsigned int)program));
         d_glUseProgram_special(opengl_context, (GLuint)get_host_program_id(opengl_context, (unsigned int)program));
     }
     break;
@@ -20899,8 +21046,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
-        glTexParameterfv(target, pname, params);
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glTexParameterfv(GL_TEXTURE_2D, pname, params);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glTexParameterfv(target, pname, params);
+        }
     }
     break;
 
@@ -20964,8 +21127,24 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         {
             break;
         }
-
-        glTexParameteriv(target, pname, params);
+        if (target == GL_TEXTURE_EXTERNAL_OES)
+        {
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(GL_TEXTURE0);
+            }
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glTexParameteriv(GL_TEXTURE_2D, pname, params);
+            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
+            if (opengl_context->current_active_texture != 0)
+            {
+                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+            }
+        }
+        else
+        {
+            glTexParameteriv(target, pname, params);
+        }
     }
     break;
 
@@ -27169,8 +27348,13 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
     case FUNID_glGraphicBufferData:
 
     {
+        EGLContext ctx;
         uint64_t g_buffer_id;
+        int width;
+        int height;
         int buf_len;
+        int row_byte_len;
+        int stride;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glGraphicBufferData)
@@ -27182,7 +27366,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         unsigned char *temp = NULL;
 
         temp_len = all_para[0].data_len;
-        if (temp_len < 12 * 1)
+        if (temp_len < (36) * 1)
         {
             break;
         }
@@ -27205,23 +27389,43 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
         unsigned int temp_loc = 0;
 
+        ctx = *(EGLContext *)(temp + temp_loc);
+        temp_loc += 8;
+
         g_buffer_id = *(uint64_t *)(temp + temp_loc);
         temp_loc += 8;
+
+        width = *(int *)(temp + temp_loc);
+        temp_loc += 4;
+
+        height = *(int *)(temp + temp_loc);
+        temp_loc += 4;
 
         buf_len = *(int *)(temp + temp_loc);
         temp_loc += 4;
 
+        row_byte_len = *(int *)(temp + temp_loc);
+        temp_loc += 4;
+
+        stride = *(int *)(temp + temp_loc);
+        temp_loc += 4;
+
         void *real_buffer = all_para[1].data;
 
-        d_glGraphicBufferData(opengl_context, g_buffer_id, buf_len, real_buffer);
+        d_glGraphicBufferData(r_context, ctx, g_buffer_id, width, height, buf_len, row_byte_len, stride, real_buffer);
     }
     break;
 
     case FUNID_glReadGraphicBuffer:
 
     {
+        EGLContext ctx;
         uint64_t g_buffer_id;
+        int width;
+        int height;
         int buf_len;
+        int row_byte_len;
+        int stride;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glReadGraphicBuffer)
@@ -27233,7 +27437,7 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
         unsigned char *temp = NULL;
 
         temp_len = all_para[0].data_len;
-        if (temp_len < 12 * 1)
+        if (temp_len < (8 * 2 + 4 * 5) * 1)
         {
             break;
         }
@@ -27256,15 +27460,30 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
         unsigned int temp_loc = 0;
 
+        ctx = *(EGLContext *)(temp + temp_loc);
+        temp_loc += 8;
+
         g_buffer_id = *(uint64_t *)(temp + temp_loc);
         temp_loc += 8;
+
+        width = *(int *)(temp + temp_loc);
+        temp_loc += 4;
+
+        height = *(int *)(temp + temp_loc);
+        temp_loc += 4;
 
         buf_len = *(int *)(temp + temp_loc);
         temp_loc += 4;
 
+        row_byte_len = *(int *)(temp + temp_loc);
+        temp_loc += 4;
+
+        stride = *(int *)(temp + temp_loc);
+        temp_loc += 4;
+
         void *real_buffer = all_para[1].data;
 
-        d_glReadGraphicBuffer(opengl_context, g_buffer_id, buf_len, real_buffer);
+        d_glReadGraphicBuffer(r_context, ctx, g_buffer_id, width, height, buf_len, row_byte_len, stride, real_buffer);
     }
     break;
 
@@ -27287,9 +27506,9 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
         if (all_para[0].data_len != sizeof(Static_Context_Values) + 512 * 100 + 400)
         {
-            printf("error! sizeof(Static_Context_Values) + 512 * 100 + 400 not equal！%d %d\n", sizeof(Static_Context_Values) + 512 * 100 + 400, all_para[0].data_len);
+            printf("error! sizeof(Static_Context_Values) + 512 * 100 + 400 not equal! host %lld guest %lld\n", sizeof(Static_Context_Values) + 512 * 100 + 400, all_para[0].data_len);
         }
-        guest_read(all_para[0].data, preload_static_context_value, 0, all_para[0].data_len);
+        guest_read(all_para[0].data, preload_static_context_value, 0, min(all_para[0].data_len, sizeof(Static_Context_Values) + 512 * 100 + 400));
     }
 
     case FUNID_glGetProgramData:
@@ -27354,11 +27573,1276 @@ void gl3_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call
 
     case FUNID_glSync:
     {
+
+        printf("guest sync\n");
+    }
+    break;
+
+    case FUNID_glBindImageTexture:
+
+    {
+
+        /* Define variables */
+        GLuint unit;
+        GLuint texture;
+        GLint level;
+        GLboolean layered;
+        GLint layer;
+        GLenum access;
+        GLenum format;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glBindImageTexture)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 25 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        unit = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        texture = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        level = *(GLint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        layered = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        layer = *(GLint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        access = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        format = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glBindImageTexture(unit, (GLuint)get_host_texture_id(opengl_context, (unsigned int)texture), level, layered, layer, access, format);
+    }
+    break;
+
+    case FUNID_glBindVertexBuffer:
+
+    {
+
+        GLuint bindingindex;
+        GLuint buffer;
+        GLintptr offset;
+        GLsizei stride;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glBindVertexBuffer)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 20 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        bindingindex = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        buffer = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        offset = *(GLintptr *)(temp + temp_loc);
+        temp_loc += 8;
+
+        stride = *(GLsizei *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glBindVertexBuffer(bindingindex, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, stride);
+    }
+    break;
+
+    case FUNID_glVertexAttribFormat:
+
+    {
+
+        GLuint attribindex;
+        GLint size;
+        GLenum type;
+        GLboolean normalized;
+        GLuint relativeoffset;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glVertexAttribFormat)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 17 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        attribindex = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        size = *(GLint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        type = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        normalized = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        relativeoffset = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+    }
+    break;
+
+    case FUNID_glVertexAttribIFormat:
+
+    {
+
+        GLuint attribindex;
+        GLint size;
+        GLenum type;
+        GLuint relativeoffset;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glVertexAttribIFormat)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 16 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        attribindex = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        size = *(GLint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        type = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        relativeoffset = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+    }
+    break;
+
+    case FUNID_glVertexAttribBinding:
+
+    {
+
+        GLuint attribindex;
+        GLuint bindingindex;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glVertexAttribBinding)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        attribindex = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        bindingindex = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glVertexAttribBinding(attribindex, bindingindex);
+    }
+    break;
+
+    case FUNID_glDispatchCompute:
+
+    {
+
+        GLuint num_groups_x;
+        GLuint num_groups_y;
+        GLuint num_groups_z;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glDispatchCompute)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 12 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        num_groups_x = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        num_groups_y = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        num_groups_z = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+    }
+    break;
+
+    case FUNID_glDispatchComputeIndirect:
+
+    {
+
+        GLintptr indirect;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glDispatchComputeIndirect)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        indirect = *(GLintptr *)(temp + temp_loc);
+        temp_loc += 8;
+
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glDispatchComputeIndirect(indirect);
+    }
+    break;
+
+    case FUNID_glMemoryBarrier:
+
+    {
+
+        GLbitfield barriers;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glMemoryBarrier)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 4 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        barriers = *(GLbitfield *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glMemoryBarrier(barriers);
+    }
+    break;
+
+    case FUNID_glMemoryBarrierByRegion:
+
+    {
+
+        GLbitfield barriers;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glMemoryBarrierByRegion)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 4 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        barriers = *(GLbitfield *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glMemoryBarrierByRegion(barriers);
+    }
+    break;
+
+    case FUNID_glFramebufferParameteri:
+
+    {
+
+        GLenum target;
+        GLenum pname;
+        GLint param;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glFramebufferParameteri)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 12 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        target = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        pname = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        param = *(GLint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glFramebufferParameteri(target, pname, param);
+    }
+    break;
+
+    case FUNID_glSampleMaski:
+
+    {
+
+        GLuint maskNumber;
+        GLbitfield mask;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glSampleMaski)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        maskNumber = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        mask = *(GLbitfield *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glSampleMaski(maskNumber, mask);
+    }
+    break;
+
+    case FUNID_glTexStorage2DMultisample:
+
+    {
+
+        GLenum target;
+        GLsizei samples;
+        GLenum internalformat;
+        GLsizei width;
+        GLsizei height;
+        GLboolean fixedsamplelocations;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glTexStorage2DMultisample)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 21 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        target = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        samples = *(GLsizei *)(temp + temp_loc);
+        temp_loc += 4;
+
+        internalformat = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        width = *(GLsizei *)(temp + temp_loc);
+        temp_loc += 4;
+
+        height = *(GLsizei *)(temp + temp_loc);
+        temp_loc += 4;
+
+        fixedsamplelocations = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        glTexStorage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
+    }
+    break;
+
+    case FUNID_glValidateProgramPipeline:
+
+    {
+
+        GLuint pipeline;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glValidateProgramPipeline)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 4 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        pipeline = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glValidateProgramPipeline((GLuint)get_host_pipeline_id(opengl_context, (unsigned int)pipeline));
+    }
+    break;
+
+    case FUNID_glVertexBindingDivisor:
+
+    {
+
+        GLuint bindingindex;
+        GLuint divisor;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glVertexBindingDivisor)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        bindingindex = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        divisor = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        d_glVertexBindingDivisor_special(opengl_context, bindingindex, divisor);
+    }
+    break;
+
+    case FUNID_glDrawArraysIndirect_with_bound:
+
+    {
+
+        GLenum mode;
+        GLintptr indirect;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glDrawArraysIndirect_with_bound)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 12 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        mode = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        indirect = *(GLintptr *)(temp + temp_loc);
+        temp_loc += 8;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        d_glDrawArraysIndirect_with_bound(opengl_context, mode, indirect);
+    }
+    break;
+
+    case FUNID_glDrawArraysIndirect_without_bound:
+
+    {
+
+        GLenum mode;
+        void *indirect;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glDrawArraysIndirect_without_bound)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 4 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        mode = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        indirect = (void *)(temp + temp_loc);
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        d_glDrawArraysIndirect_without_bound(opengl_context, mode, indirect);
+    }
+    break;
+
+    case FUNID_glDrawElementsIndirect_with_bound:
+
+    {
+
+        GLenum mode;
+        GLenum type;
+        GLintptr indirect;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glBindFramebuffer)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 16 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        mode = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        type = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        indirect = *(GLintptr *)(temp + temp_loc);
+        temp_loc += 8;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+        d_glDrawElementsIndirect_with_bound(opengl_context, mode, type, indirect);
+    }
+    break;
+
+    case FUNID_glDrawElementsIndirect_without_bound:
+
+    {
+
+        GLenum mode;
+        GLenum type;
+        void *indirect;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glDrawElementsIndirect_without_bound)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        mode = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        type = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        indirect = (void *)(temp + temp_loc);
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        d_glDrawElementsIndirect_without_bound(opengl_context, mode, type, indirect);
+    }
+
+    break;
+
+    case FUNID_glDiscardFramebufferEXT:
+
+    {
+
+        /* Define variables */
+        GLenum target;
+        GLsizei numAttachments;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glDiscardFramebufferEXT)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        target = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        numAttachments = *(GLsizei *)(temp + temp_loc);
+        temp_loc += 4;
+
+        GLenum *attachments = (const GLenum *)(temp + temp_loc);
+        temp_loc += numAttachments * sizeof(GLenum);
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        for (int i = 0; i < numAttachments; i++)
+        {
+            if (attachments[i] == GL_COLOR)
+            {
+                attachments[i] = GL_COLOR_ATTACHMENT0;
+            }
+            if (attachments[i] == GL_DEPTH)
+            {
+                attachments[i] = GL_DEPTH_ATTACHMENT;
+            }
+            if (attachments[i] == GL_STENCIL)
+            {
+                attachments[i] = GL_DEPTH_STENCIL_ATTACHMENT;
+            }
+        }
+        glInvalidateFramebuffer(target, numAttachments, attachments);
+    }
+    break;
+
+    case FUNID_glTexBuffer:
+
+    {
+
+        GLenum target;
+        GLenum internalformat;
+        GLuint buffer;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glTexBuffer)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 12 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        target = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        internalformat = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        buffer = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glTexBuffer(target, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
+    }
+    break;
+
+    case FUNID_glTexBufferRange:
+
+    {
+
+        GLenum target;
+        GLenum internalformat;
+        GLuint buffer;
+        GLintptr offset;
+        GLsizeiptr size;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glTexBufferRange)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 28 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        target = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        internalformat = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        buffer = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        offset = *(GLintptr *)(temp + temp_loc);
+        temp_loc += 8;
+
+        size = *(GLsizeiptr *)(temp + temp_loc);
+        temp_loc += 8;
+
+        /* Check length */
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glTexBufferRange(target, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size);
     }
     break;
 
     default:
-        break;
+    {
+        printf("error! invoke call id %llx not exist!\n", call->id);
+    }
+    break;
     }
 
     if (no_ptr_buf != NULL)

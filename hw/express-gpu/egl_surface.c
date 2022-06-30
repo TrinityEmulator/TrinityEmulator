@@ -1,3 +1,4 @@
+
 /**
  * @file egl_surface.c
  * @author Di Gao
@@ -15,41 +16,17 @@
 #include "express-gpu/offscreen_render_thread.h"
 #include "express-gpu/glv3_resource.h"
 
-EGL_Image *create_real_image(void *context, uint64_t g_buffer_id, EGLenum target, int format, int stride, int width, int height, GLuint share_texture);
-void connect_fbo_texture(Window_Buffer *d_buffer, int index, int new);
-
-void egl_surface_swap_buffer(Window_Buffer *surface)
+void egl_surface_swap_buffer(void *render_context, Window_Buffer *surface, uint64_t gbuffer_id, int width, int height, int hal_format)
 {
 
-    if (surface->config->sample_buffers_num != 0)
-    {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, surface->sampler_fbo[surface->now_draw]);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, surface->display_fbo[surface->now_draw]);
-        glBlitFramebuffer(0, 0, surface->width, surface->height, 0, 0, surface->width, surface->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    }
+    Render_Thread_Context *thread_context = (Render_Thread_Context *)render_context;
+    Opengl_Context *opengl_context = (Opengl_Context *)(thread_context->opengl_context);
 
-    GLsync wait_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glFlush();
+    Process_Context *process_context = thread_context->process_context;
 
-    int now_draw_buffer = surface->now_draw;
+    Graphic_Buffer *now_draw_gbuffer = surface->gbuffer;
 
-    if (surface->fbo_sync[now_draw_buffer] != NULL)
-    {
-
-        glDeleteSync(surface->fbo_sync[now_draw_buffer]);
-    }
-    surface->fbo_sync[now_draw_buffer] = wait_sync;
-
-    ATOMIC_SET_UNUSED(surface->display_texture_is_use[now_draw_buffer]);
-
-#ifdef DEBUG_INDEPEND_WINDOW
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, surface->display_fbo[now_draw_buffer]);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, surface->width, surface->height, 0, 0, surface->width, surface->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    glfwSwapBuffers(surface->creater_window);
-#endif
-
-    surface->now_read = surface->now_draw;
+    express_printf("surface %llx swapbuffer gbuffer_id %llx sync %d\n", surface, now_draw_gbuffer->gbuffer_id, now_draw_gbuffer->data_sync);
 
     if (surface->last_frame_num == -1)
     {
@@ -61,39 +38,71 @@ void egl_surface_swap_buffer(Window_Buffer *surface)
         surface->last_frame_num = draw_wait_GSYNC(surface->swap_event, next_frame_num);
     }
 
-    int next_draw_buffer = (surface->now_draw + 1) % surface->buffer_num;
+    Graphic_Buffer *next_draw_gbuffer = NULL;
 
-    if (surface->display_texture_is_use[next_draw_buffer] == 1)
+    if (surface->type == WINDOW_SURFACE)
     {
-        next_draw_buffer = (next_draw_buffer + 1) % surface->buffer_num;
+        next_draw_gbuffer = (Graphic_Buffer *)g_hash_table_lookup(process_context->gbuffer_map, GUINT_TO_POINTER(gbuffer_id));
+        if (next_draw_gbuffer == NULL)
+        {
+            express_printf("create gbuffer_id %llx when surface %llx swapbuffer context %llx width %d height %d\n", gbuffer_id, surface, opengl_context, width, height);
+            next_draw_gbuffer = create_gbuffer_from_hal(width, height, hal_format, surface);
+            opengl_context_add_fbo(opengl_context, next_draw_gbuffer->data_fbo);
+            opengl_context_add_fbo(opengl_context, next_draw_gbuffer->sampler_fbo);
+            next_draw_gbuffer->gbuffer_id = gbuffer_id;
+            g_hash_table_insert(process_context->gbuffer_map, (gpointer)(gbuffer_id), (gpointer)next_draw_gbuffer);
+            add_gbuffer_to_global(next_draw_gbuffer);
+        }
+        next_draw_gbuffer->is_writing = 1;
     }
-    assert(surface->display_texture_is_use[next_draw_buffer] == 0);
-
-    ATOMIC_SET_UNUSED(surface->display_texture_is_use[next_draw_buffer]);
-
-    surface->now_draw = next_draw_buffer;
+    else
+    {
+        next_draw_gbuffer = now_draw_gbuffer;
+    }
 
     TIMER_START(sync)
-    if (surface->fbo_sync[next_draw_buffer] != 0)
+    if (next_draw_gbuffer->data_sync != 0)
     {
-        glClientWaitSync(surface->fbo_sync[next_draw_buffer], GL_SYNC_FLUSH_COMMANDS_BIT, 1000000000);
+
+        glWaitSync(next_draw_gbuffer->data_sync, 0, GL_TIMEOUT_IGNORED);
+
+        if (next_draw_gbuffer->delete_sync != 0)
+        {
+            glDeleteSync(next_draw_gbuffer->delete_sync);
+        }
+        next_draw_gbuffer->delete_sync = next_draw_gbuffer->data_sync;
+        next_draw_gbuffer->data_sync = NULL;
     }
     TIMER_END(sync)
     TIMER_OUTPUT(sync, 100)
 
-    if (surface->config->sample_buffers_num != 0)
+    surface->gbuffer = next_draw_gbuffer;
+
+    if (surface->gbuffer->sampler_num > 1)
     {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, surface->sampler_fbo[surface->now_draw]);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, surface->gbuffer->sampler_fbo);
     }
     else
     {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, surface->display_fbo[surface->now_draw]);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, surface->gbuffer->data_fbo);
     }
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, surface->display_fbo[surface->now_read]);
 }
 
-void connect_fbo_texture(Window_Buffer *d_buffer, int index, int new)
+Window_Buffer *render_surface_create(EGLConfig eglconfig, int width, int height, int surface_type)
 {
+
+    Window_Buffer *surface = g_malloc(sizeof(Window_Buffer));
+    memset(surface, 0, sizeof(Window_Buffer));
+    surface->type = surface_type;
+    surface->width = width;
+    surface->height = height;
+    surface->swap_interval = 1;
+
+    surface->swap_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+    eglConfig *config = config_to_hints(eglconfig, &surface->window_hints);
+    ;
+    surface->config = config;
 
     EGLint internal_format = GL_RGB;
     EGLenum format = GL_RGB;
@@ -102,21 +111,22 @@ void connect_fbo_texture(Window_Buffer *d_buffer, int index, int new)
     EGLenum depth_internal_format = 0;
     EGLenum stencil_internal_format = 0;
 
-    EGLint red_bits = d_buffer->config->red_size;
-    EGLint green_bits = d_buffer->config->green_size;
-    EGLint blue_bits = d_buffer->config->blue_size;
-    EGLint alpha_bits = d_buffer->config->alpha_size;
-    EGLint stencil_bits = d_buffer->config->stencil_size;
-    EGLint depth_bits = d_buffer->config->depth_size;
-    if (d_buffer->config->sample_buffers_num != 0)
+    EGLint red_bits = config->red_size;
+    EGLint green_bits = config->green_size;
+    EGLint blue_bits = config->blue_size;
+    EGLint alpha_bits = config->alpha_size;
+    EGLint stencil_bits = config->stencil_size;
+    EGLint depth_bits = config->depth_size;
+    if (config->sample_buffers_num != 0)
     {
-        if (d_buffer->config->sample_buffers_num == -1)
+
+        if (config->sample_buffers_num == -1)
         {
-            d_buffer->config->sample_buffers_num = 0;
+            config->sample_buffers_num = 0;
         }
     }
-    EGLint need_sampler = d_buffer->config->sample_buffers_num;
-    EGLint sampler_num = d_buffer->config->samples_per_pixel;
+    EGLint need_sampler = config->sample_buffers_num;
+    EGLint sampler_num = config->samples_per_pixel;
 
     if (red_bits == 2 && green_bits == 2 && blue_bits == 2 && alpha_bits == 2)
     {
@@ -265,281 +275,32 @@ void connect_fbo_texture(Window_Buffer *d_buffer, int index, int new)
     {
         stencil_internal_format = GL_STENCIL_INDEX8;
 
-        if (depth_internal_format == GL_DEPTH_COMPONENT24 || depth_internal_format == GL_DEPTH_COMPONENT16)
+        if (depth_internal_format == GL_DEPTH_COMPONENT24 || depth_internal_format == GL_DEPTH_COMPONENT16 || depth_internal_format == GL_DEPTH_COMPONENT32F)
         {
-            depth_internal_format = GL_DEPTH_COMPONENT24;
 
             depth_internal_format = GL_DEPTH24_STENCIL8;
         }
     }
 
-    glBindTexture(GL_TEXTURE_2D, d_buffer->fbo_texture[index]);
+    surface->sampler_num = sampler_num;
+    surface->format = format;
+    surface->internal_format = internal_format;
+    surface->pixel_type = type;
 
-    if (new == 1)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, internal_format, d_buffer->width, d_buffer->height, 0, format, type, NULL);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
-
-    static int max_sampler_num = -1;
-    if (max_sampler_num == -1)
-    {
-        glGetInternalformativ(GL_RENDERBUFFER, GL_RGB, GL_SAMPLES, 1, &max_sampler_num);
-    }
-    if (max_sampler_num < sampler_num)
-    {
-        express_printf("over large sampler num %d max %d\n", sampler_num, max_sampler_num);
-        sampler_num = max_sampler_num;
-        d_buffer->config->samples_per_pixel = sampler_num;
-        if (sampler_num == 0)
-        {
-            need_sampler = 0;
-            d_buffer->config->sample_buffers_num = 0;
-        }
-    }
-
-    if (need_sampler)
-    {
-        glBindRenderbuffer(GL_RENDERBUFFER, d_buffer->sampler_rbo[index]);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, sampler_num, internal_format, d_buffer->width, d_buffer->height);
-    }
-
-    if (depth_internal_format != 0)
-    {
-
-        glBindRenderbuffer(GL_RENDERBUFFER, d_buffer->display_rbo_depth[index]);
-        if (need_sampler)
-        {
-            glRenderbufferStorageMultisample(GL_RENDERBUFFER, sampler_num, depth_internal_format, d_buffer->width, d_buffer->height);
-        }
-        else
-        {
-            glRenderbufferStorage(GL_RENDERBUFFER, depth_internal_format, d_buffer->width, d_buffer->height);
-        }
-    }
-
-    if (stencil_internal_format != 0 && depth_internal_format != GL_DEPTH24_STENCIL8)
-    {
-        glBindRenderbuffer(GL_RENDERBUFFER, d_buffer->display_rbo_stencil[index]);
-        if (need_sampler)
-        {
-            glRenderbufferStorageMultisample(GL_RENDERBUFFER, sampler_num, stencil_internal_format, d_buffer->width, d_buffer->height);
-        }
-        else
-        {
-            glRenderbufferStorage(GL_RENDERBUFFER, stencil_internal_format, d_buffer->width, d_buffer->height);
-        }
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, d_buffer->display_fbo[index]);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, d_buffer->fbo_texture[index], 0);
-
-    if (need_sampler)
-    {
-        glBindFramebuffer(GL_FRAMEBUFFER, d_buffer->sampler_fbo[index]);
-
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d_buffer->sampler_rbo[index]);
-    }
-
-    if (depth_internal_format == GL_DEPTH24_STENCIL8)
-    {
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, d_buffer->display_rbo_depth[index]);
-    }
-    else if (depth_internal_format != 0)
-    {
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, d_buffer->display_rbo_depth[index]);
-    }
-
-    if (stencil_internal_format != 0 && depth_internal_format != GL_DEPTH24_STENCIL8)
-    {
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, d_buffer->display_rbo_stencil[index]);
-    }
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE)
-    {
-        printf("Framebuffer is not complete! status is %x error is %x\n", status, glGetError());
-    }
-}
-
-int egl_surface_init(Window_Buffer *d_buffer, void *now_window, int need_draw)
-{
-    if (d_buffer == NULL || now_window == NULL)
-    {
-        return 0;
-    }
-
-    int buffer_num = d_buffer->buffer_num;
-
-    if (d_buffer->creater_window == NULL)
-    {
-
-        d_buffer->creater_window = now_window;
-
-        d_buffer->swap_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-        if (d_buffer->config->sample_buffers_num != 0)
-        {
-
-            glEnable(GL_MULTISAMPLE);
-        }
-        else
-        {
-            glDisable(GL_MULTISAMPLE);
-        }
-
-        glGenFramebuffers(buffer_num, d_buffer->display_fbo);
-
-        d_buffer->reader_window = now_window;
-        memcpy(d_buffer->read_fbo, d_buffer->display_fbo, sizeof(d_buffer->read_fbo));
-
-        glGenTextures(buffer_num, d_buffer->fbo_texture);
-        glGenRenderbuffers(buffer_num, d_buffer->display_rbo_depth);
-        glGenRenderbuffers(buffer_num, d_buffer->display_rbo_stencil);
-
-        if (d_buffer->config->sample_buffers_num != 0)
-        {
-            glGenFramebuffers(buffer_num, d_buffer->sampler_fbo);
-            glGenRenderbuffers(buffer_num, d_buffer->sampler_rbo);
-        }
-
-        for (int i = 0; i < buffer_num; i++)
-        {
-            connect_fbo_texture(d_buffer, i, 1);
-        }
-
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-        if (d_buffer->config->sample_buffers_num != 0)
-        {
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, d_buffer->sampler_fbo[d_buffer->now_draw]);
-        }
-        else
-        {
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, d_buffer->display_fbo[d_buffer->now_draw]);
-        }
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, d_buffer->display_fbo[d_buffer->now_read]);
-    }
-    else if (d_buffer->creater_window == now_window)
-    {
-
-        if (need_draw == 0)
-        {
-
-            if (d_buffer->reader_window != now_window)
-            {
-
-                d_buffer->reader_window = now_window;
-                glGenFramebuffers(buffer_num, d_buffer->read_fbo);
-
-                for (int i = 0; i < buffer_num; i++)
-                {
-
-                    glBindFramebuffer(GL_FRAMEBUFFER, d_buffer->read_fbo[i]);
-                    glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, d_buffer->fbo_texture[i], 0);
-                }
-            }
-        }
-        return 1;
-    }
-    else
-    {
-
-        if (need_draw)
-        {
-
-            d_buffer->creater_window = now_window;
-
-            glGenFramebuffers(buffer_num, d_buffer->display_fbo);
-            if (d_buffer->config->sample_buffers_num != 0)
-            {
-                glGenFramebuffers(buffer_num, d_buffer->sampler_fbo);
-            }
-
-            for (int i = 0; i < buffer_num; i++)
-            {
-                connect_fbo_texture(d_buffer, i, 0);
-            }
-        }
-        else
-        {
-
-            if (d_buffer->reader_window != now_window)
-            {
-
-                d_buffer->reader_window = now_window;
-                glGenFramebuffers(buffer_num, d_buffer->read_fbo);
-
-                for (int i = 0; i < buffer_num; i++)
-                {
-
-                    glBindFramebuffer(GL_FRAMEBUFFER, d_buffer->read_fbo[i]);
-                    glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, d_buffer->fbo_texture[i], 0);
-                }
-            }
-            else
-            {
-            }
-        }
-    }
-
-    return 1;
-}
-
-Window_Buffer *render_surface_create(EGLConfig config, int width, int height, int type)
-{
-
-    Window_Buffer *surface = g_malloc(sizeof(Window_Buffer));
-    memset(surface, 0, sizeof(Window_Buffer));
-    surface->type = type;
-    surface->width = width;
-    surface->height = height;
-    surface->swap_interval = 1;
-    surface->guest_native_window = NULL;
-    surface->guest_gbuffer_id = 0;
-    surface->now_acquired = -1;
-
-    if (surface->type == WINDOW_SURFACE)
-    {
-
-        surface->buffer_num = 3;
-        surface->now_read = 0;
-        surface->now_draw = 1;
-    }
-    else if (surface->type == P_SURFACE)
-    {
-
-        surface->buffer_num = 1;
-        surface->now_draw = 0;
-        surface->now_read = 0;
-    }
-
-    surface->config = config_to_hints(config, &surface->window_hints);
+    surface->depth_internal_format = depth_internal_format;
+    surface->stencil_internal_format = stencil_internal_format;
 
     return surface;
 }
 
 int render_surface_destroy(Window_Buffer *surface)
 {
-
-    if (surface == NULL)
+    if (surface->type == P_SURFACE && surface->gbuffer != NULL)
     {
-        return 0;
+        send_message_to_main_window(MAIN_DESTROY_GBUFFER, surface->gbuffer);
     }
 
-    if (surface->is_current)
-    {
-        surface->need_destroy = 1;
-    }
-    else
-    {
-
-        send_message_to_main_window(MAIN_DESTROY_SURFACE, surface);
-    }
+    g_free(surface);
 
     return 1;
 }
@@ -549,9 +310,7 @@ void d_eglIamComposer(void *context, EGLSurface surface)
     Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
     Process_Context *process_context = thread_context->process_context;
 
-    Window_Buffer *real_surface = (Window_Buffer *)g_hash_table_lookup(process_context->surface_map, GINT_TO_POINTER(surface));
-
-    express_printf("surface is composer %lx %lx\n", real_surface, surface);
+    Window_Buffer *real_surface = (Window_Buffer *)g_hash_table_lookup(process_context->surface_map, GUINT_TO_POINTER(surface));
 
     real_surface->I_am_composer = 1;
 }
@@ -581,9 +340,12 @@ void d_eglCreatePbufferSurface(void *context, EGLDisplay dpy, EGLConfig config, 
         i += 2;
     }
 
-    EGLSurface host_surface = (EGLSurface)render_surface_create(config, width, height, P_SURFACE);
+    Window_Buffer *host_surface = render_surface_create(config, width, height, P_SURFACE);
+    host_surface->guest_surface = guest_surface;
 
-    g_hash_table_insert(process_context->surface_map, GINT_TO_POINTER(guest_surface), (gpointer)host_surface);
+    express_printf("pbuffer surface create host %llx guest %llx width %d height %d guest width %d height %d\n", host_surface, guest_surface, host_surface->width, host_surface->height, width, height);
+
+    g_hash_table_insert(process_context->surface_map, GUINT_TO_POINTER(guest_surface), (gpointer)host_surface);
 }
 
 void d_eglCreateWindowSurface(void *context, EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list, EGLSurface guest_surface)
@@ -591,9 +353,7 @@ void d_eglCreateWindowSurface(void *context, EGLDisplay dpy, EGLConfig config, E
     Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
     Process_Context *process_context = thread_context->process_context;
 
-    Window_Buffer *host_surface = (Window_Buffer *)g_hash_table_lookup(process_context->native_window_surface_map, GINT_TO_POINTER(win));
-
-    eglConfig *now_eglconfig = (eglConfig *)g_hash_table_lookup(default_egl_display->egl_config_set, GINT_TO_POINTER(config));
+    eglConfig *now_eglconfig = (eglConfig *)g_hash_table_lookup(default_egl_display->egl_config_set, GUINT_TO_POINTER(config));
 
     int i = 0;
     int width = 0;
@@ -610,37 +370,16 @@ void d_eglCreateWindowSurface(void *context, EGLDisplay dpy, EGLConfig config, E
             break;
         default:
 
+            printf("window_surface attrib_list %x %x\n", attrib_list[i], attrib_list[i + 1]);
             break;
         }
         i += 2;
     }
 
-    if (host_surface == NULL || now_eglconfig != host_surface->config || width != host_surface->width || height != host_surface->height)
-    {
-        if (host_surface != NULL)
-        {
-
-            if (host_surface->is_current == 1)
-            {
-
-                printf("errro! Same ANativeWindow create different surface and origin surface is current!!!");
-            }
-        }
-        if (host_surface != NULL && (now_eglconfig != host_surface->config || width != host_surface->width || height != host_surface->height))
-        {
-            express_printf("config change %lx host surface%lx width %d height %d => width %d height %d\n", now_eglconfig, host_surface->config, host_surface->width, host_surface->height, width, height);
-        }
-        host_surface = render_surface_create(config, width, height, WINDOW_SURFACE);
-
-        host_surface->guest_native_window = win;
-        g_hash_table_insert(process_context->native_window_surface_map, GINT_TO_POINTER(win), (gpointer)host_surface);
-    }
-    else
-    {
-    }
-
+    Window_Buffer *host_surface = render_surface_create(config, width, height, WINDOW_SURFACE);
+    host_surface->guest_surface = guest_surface;
     express_printf("surface create host %llx guest %llx width %d height %d guest width %d height %d\n", host_surface, guest_surface, host_surface->width, host_surface->height, width, height);
-    g_hash_table_insert(process_context->surface_map, GINT_TO_POINTER(guest_surface), (gpointer)host_surface);
+    g_hash_table_insert(process_context->surface_map, GUINT_TO_POINTER(guest_surface), (gpointer)host_surface);
 }
 
 EGLBoolean d_eglDestroySurface(void *context, EGLDisplay dpy, EGLSurface surface)
@@ -648,24 +387,302 @@ EGLBoolean d_eglDestroySurface(void *context, EGLDisplay dpy, EGLSurface surface
     Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
     Process_Context *process_context = thread_context->process_context;
 
-    Window_Buffer *real_surface = (Window_Buffer *)g_hash_table_lookup(process_context->surface_map, GINT_TO_POINTER(surface));
-
+    Window_Buffer *real_surface = (Window_Buffer *)g_hash_table_lookup(process_context->surface_map, GUINT_TO_POINTER(surface));
+    express_printf("destroy surface %llx\n", real_surface);
     if (real_surface == NULL)
     {
         return EGL_FALSE;
     }
-    if (real_surface->type == P_SURFACE)
-    {
 
-        g_hash_table_remove(process_context->surface_map, GINT_TO_POINTER(surface));
+    if (real_surface->is_current == 1)
+    {
+        real_surface->need_destroy = 1;
     }
     else
     {
 
-        g_hash_table_remove(process_context->surface_map, GINT_TO_POINTER(surface));
+        g_hash_table_remove(process_context->surface_map, GUINT_TO_POINTER(surface));
     }
+
     express_printf("destroy surface host %lx guest %lx\n", real_surface, surface);
     return EGL_TRUE;
+}
+
+Graphic_Buffer *create_gbuffer_from_hal(int width, int height, int hal_format, Window_Buffer *surface)
+{
+
+    int sampler_num = 0;
+    int format = GL_RGBA;
+    int pixel_type = GL_UNSIGNED_INT;
+    int internal_format = GL_RGBA8;
+    int depth_internal_format = 0;
+    int stencil_internal_format = 0;
+    if (surface != NULL)
+    {
+        sampler_num = surface->sampler_num;
+        format = surface->format;
+        pixel_type = surface->pixel_type;
+        internal_format = surface->internal_format;
+
+        depth_internal_format = surface->depth_internal_format;
+        stencil_internal_format = surface->stencil_internal_format;
+    }
+    if (hal_format == HAL_PIXEL_FORMAT_RGBA_8888 || hal_format == HAL_PIXEL_FORMAT_RGBX_8888)
+    {
+
+        internal_format = GL_RGBA8;
+        format = GL_RGBA;
+        pixel_type = GL_UNSIGNED_BYTE;
+    }
+    else if (hal_format == HAL_PIXEL_FORMAT_BGRA_8888)
+    {
+
+        internal_format = GL_RGBA8;
+        format = GL_BGRA;
+        pixel_type = GL_UNSIGNED_INT_8_8_8_8;
+    }
+    else if (hal_format == HAL_PIXEL_FORMAT_RGB_888)
+    {
+        internal_format = GL_RGB8;
+        format = GL_RGB;
+        pixel_type = GL_UNSIGNED_INT;
+    }
+    else if (hal_format == HAL_PIXEL_FORMAT_RGB_565)
+    {
+
+        internal_format = GL_RGB565;
+        format = GL_RGB;
+        pixel_type = GL_UNSIGNED_SHORT_5_6_5;
+    }
+    else
+    {
+        internal_format = GL_RGBA8;
+        format = GL_RGBA;
+        pixel_type = GL_UNSIGNED_INT;
+
+        printf("error! unknown EGLImage format %d!!!\n", hal_format);
+    }
+
+    return create_gbuffer(width, height, sampler_num,
+                          format,
+                          pixel_type,
+                          internal_format,
+                          depth_internal_format,
+                          stencil_internal_format);
+}
+
+Graphic_Buffer *create_gbuffer_from_surface(Window_Buffer *surface)
+{
+    return create_gbuffer(surface->width, surface->height, surface->sampler_num,
+                          surface->format,
+                          surface->pixel_type,
+                          surface->internal_format,
+                          surface->depth_internal_format,
+                          surface->stencil_internal_format);
+}
+
+Graphic_Buffer *create_gbuffer(int width, int height, int sampler_num,
+                               int format,
+                               int pixel_type,
+                               int internal_format,
+                               int depth_internal_format,
+                               int stencil_internal_format)
+{
+
+    Graphic_Buffer *gbuffer = g_malloc(sizeof(Graphic_Buffer));
+    memset(gbuffer, 0, sizeof(Graphic_Buffer));
+
+    GLuint pre_vbo = 0;
+    GLuint pre_texture = 0;
+    GLuint pre_fbo_draw = 0;
+    GLuint pre_fbo_read = 0;
+    GLuint pre_rbo = 0;
+
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLuint *)&pre_vbo);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint *)&pre_texture);
+    glGetIntegerv(GL_RENDERBUFFER_BINDING, (GLint *)&pre_rbo);
+
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&pre_fbo_draw);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, (GLint *)&pre_fbo_read);
+
+    if (sampler_num > 1)
+    {
+
+        glEnable(GL_MULTISAMPLE);
+        gbuffer->sampler_num = sampler_num;
+    }
+    else
+    {
+        glDisable(GL_MULTISAMPLE);
+    }
+
+    glGenFramebuffers(1, &(gbuffer->data_fbo));
+    glGenTextures(1, &(gbuffer->data_texture));
+    glGenRenderbuffers(1, &(gbuffer->rbo_depth));
+    glGenRenderbuffers(1, &(gbuffer->rbo_stencil));
+
+    if (sampler_num > 1)
+    {
+        glGenFramebuffers(1, &(gbuffer->sampler_fbo));
+        glGenRenderbuffers(1, &(gbuffer->sampler_rbo));
+    }
+
+    glBindTexture(GL_TEXTURE_2D, gbuffer->data_texture);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+#ifdef ENABLE_OPENGL_DEBUG
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        printf("error when creating gbuffer1 init error %x\n", error);
+    }
+#endif
+    glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, pixel_type, NULL);
+
+#ifdef ENABLE_OPENGL_DEBUG
+    error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        printf("error when creating gbuffer1 %x width %d height %d format %x pixel_type %x \n", error, width, height, format, pixel_type);
+    }
+#endif
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    static int max_sampler_num = -1;
+    if (max_sampler_num == -1)
+    {
+        glGetInternalformativ(GL_RENDERBUFFER, GL_RGB, GL_SAMPLES, 1, &max_sampler_num);
+    }
+
+    if (max_sampler_num < sampler_num)
+    {
+        express_printf("over large sampler num %d max %d\n", sampler_num, max_sampler_num);
+        sampler_num = max_sampler_num;
+    }
+
+    if (sampler_num > 1)
+    {
+        glBindRenderbuffer(GL_RENDERBUFFER, gbuffer->sampler_rbo);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, sampler_num, internal_format, width, height);
+    }
+
+    if (depth_internal_format != 0)
+    {
+
+        glBindRenderbuffer(GL_RENDERBUFFER, gbuffer->rbo_depth);
+        if (sampler_num > 1)
+        {
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, sampler_num, depth_internal_format, width, height);
+        }
+        else
+        {
+            glRenderbufferStorage(GL_RENDERBUFFER, depth_internal_format, width, height);
+        }
+    }
+
+    if (stencil_internal_format != 0 && depth_internal_format != GL_DEPTH24_STENCIL8)
+    {
+        glBindRenderbuffer(GL_RENDERBUFFER, gbuffer->rbo_stencil);
+        if (sampler_num > 1)
+        {
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, sampler_num, stencil_internal_format, width, height);
+        }
+        else
+        {
+            glRenderbufferStorage(GL_RENDERBUFFER, stencil_internal_format, width, height);
+        }
+    }
+
+    error = glGetError();
+    if (error != GL_NO_ERROR)
+    {
+        printf("error when creating gbuffer2 %x\n", error);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, gbuffer->data_fbo);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer->data_texture, 0);
+
+    if (sampler_num > 1)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, gbuffer->sampler_fbo);
+
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, gbuffer->sampler_rbo);
+    }
+
+    if (depth_internal_format == GL_DEPTH24_STENCIL8)
+    {
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, gbuffer->rbo_depth);
+    }
+    else if (depth_internal_format != 0)
+    {
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, gbuffer->rbo_depth);
+    }
+
+    if (stencil_internal_format != 0 && depth_internal_format != GL_DEPTH24_STENCIL8)
+    {
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, gbuffer->rbo_stencil);
+    }
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        printf("error! Framebuffer is not complete! status is %x error is %x ", status, glGetError());
+        printf("foramt %x pixel_type %x internal_format %x depth_internal_format %x stencil_internal_format %x\n", format, pixel_type, internal_format, depth_internal_format, stencil_internal_format);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, pre_texture);
+    glBindBuffer(GL_ARRAY_BUFFER, pre_vbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, pre_rbo);
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pre_fbo_draw);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, pre_fbo_read);
+
+    gbuffer->format = format;
+    gbuffer->pixel_type = pixel_type;
+    gbuffer->internal_format = internal_format;
+
+    gbuffer->depth_internal_format = depth_internal_format;
+    gbuffer->stencil_internal_format = stencil_internal_format;
+
+    gbuffer->width = width;
+    gbuffer->height = height;
+    gbuffer->sampler_num = sampler_num;
+
+    return gbuffer;
+}
+
+void destroy_gbuffer(Graphic_Buffer *gbuffer)
+{
+    if (gbuffer->data_texture != 0)
+    {
+        glDeleteTextures(1, &(gbuffer->data_texture));
+    }
+
+    if (gbuffer->sampler_rbo != 0)
+    {
+        glDeleteRenderbuffers(1, &(gbuffer->sampler_rbo));
+    }
+    if (gbuffer->rbo_depth != 0)
+    {
+        glDeleteRenderbuffers(1, &(gbuffer->rbo_depth));
+    }
+    if (gbuffer->rbo_stencil != 0)
+    {
+        glDeleteRenderbuffers(1, &(gbuffer->rbo_stencil));
+    }
+
+    if (gbuffer->data_sync != 0)
+    {
+        glDeleteSync(gbuffer->data_sync);
+    }
+
+    if (gbuffer->delete_sync != 0)
+    {
+        glDeleteSync(gbuffer->delete_sync);
+    }
+
+    g_free(gbuffer);
 }
 
 EGLBoolean d_eglSurfaceAttrib(void *context, EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLint value)
@@ -686,10 +703,10 @@ EGLint d_eglCreateImage(void *context, EGLDisplay dpy, EGLContext ctx, EGLenum t
         return -1;
     }
 
-    int width = 0;
-    int height = 0;
-    int format = 0;
-    int stride = 0;
+    int width = 1;
+    int height = 1;
+    int hal_format = 0;
+
     GLuint share_texture = 0;
     int i = 0;
     while (attrib_list != NULL && attrib_list[i] != EGL_NONE)
@@ -703,12 +720,12 @@ EGLint d_eglCreateImage(void *context, EGLDisplay dpy, EGLContext ctx, EGLenum t
             height = attrib_list[i + 1];
             break;
         case EGL_TEXTURE_FORMAT:
-            format = attrib_list[i + 1];
-        case EGL_BUFFER_SIZE:
+            hal_format = attrib_list[i + 1];
+            break;
 
-            stride = attrib_list[i + 1];
         case EGL_GL_TEXTURE_2D:
             share_texture = attrib_list[i + 1];
+            break;
         default:
 
             break;
@@ -718,227 +735,65 @@ EGLint d_eglCreateImage(void *context, EGLDisplay dpy, EGLContext ctx, EGLenum t
 
     Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
 
-    uint64_t gbuffer_id = (uint64_t)buffer;
-    Window_Buffer *surface = get_surface_from_gbuffer_id(gbuffer_id);
-    if (surface != NULL)
-    {
-
-        return 1;
-    }
-
-    EGL_Image *real_image = get_image_from_gbuffer_id(gbuffer_id);
-    if (real_image != NULL && real_image->height == height && real_image->width == width && real_image->origin_format == format)
-    {
-
-        real_image->display_texture_is_use = 0;
-        if (real_image->host_has_data == 1)
-        {
-            return 1;
-        }
-        else
-        {
-
-            return 0;
-        }
-    }
-
-    if (real_image != NULL)
-    {
-        printf("image change %d %d => %d %d\n", real_image->width, real_image->height, width, height);
-    }
-
-    real_image = create_real_image(context, gbuffer_id, target, format, stride, width, height, share_texture);
-
     Process_Context *process_context = thread_context->process_context;
-    express_printf("#%llx create image, gbuffer_id %llx, image %llx, width %d height %d texture %u time %lld\n", thread_context->opengl_context, gbuffer_id, guest_image, width, height, real_image->fbo_texture, g_get_real_time());
 
-    g_hash_table_insert(process_context->gbuffer_image_map, GINT_TO_POINTER(gbuffer_id), (gpointer)real_image);
+    uint64_t gbuffer_id = (uint64_t)buffer;
 
-    set_image_gbuffer_id(NULL, real_image, gbuffer_id);
+    Graphic_Buffer *gbuffer = (Graphic_Buffer *)g_hash_table_lookup(process_context->gbuffer_map, GUINT_TO_POINTER(gbuffer_id));
 
-    if (target == EGL_GL_TEXTURE_2D)
+    if (gbuffer == NULL)
     {
-        return 1;
+        gbuffer = get_gbuffer_from_global_map(gbuffer_id);
     }
-    else
+
+    if (gbuffer == NULL)
     {
+
+        express_printf("create image with gbuffer id %llx width %d height %d format %d\n", gbuffer_id, width, height, hal_format);
+        Opengl_Context *opengl_context = thread_context->opengl_context;
+        if (opengl_context == NULL)
+        {
+
+            opengl_context = (Opengl_Context *)g_hash_table_lookup(process_context->context_map, GUINT_TO_POINTER(ctx));
+            if (opengl_context->independ_mode == 1)
+            {
+                glfwMakeContextCurrent((GLFWwindow *)opengl_context->window);
+            }
+            else
+            {
+                egl_makeCurrent(opengl_context->window);
+            }
+        }
+
+        gbuffer = create_gbuffer_from_hal(width, height, hal_format, NULL);
+        opengl_context_add_fbo(opengl_context, gbuffer->data_fbo);
+        opengl_context_add_fbo(opengl_context, gbuffer->sampler_fbo);
+
+        if (thread_context->opengl_context == NULL)
+        {
+            if (opengl_context->independ_mode == 1)
+            {
+                glfwMakeContextCurrent((GLFWwindow *)NULL);
+            }
+            else
+            {
+                egl_makeCurrent(NULL);
+            }
+        }
+
+        gbuffer->gbuffer_id = gbuffer_id;
+        g_hash_table_insert(process_context->gbuffer_map, (gpointer)(gbuffer_id), (gpointer)gbuffer);
+        add_gbuffer_to_global(gbuffer);
         return 0;
     }
+
+    return 1;
+
+    return 0;
 }
 
 EGLBoolean d_eglDestroyImage(void *context, EGLDisplay dpy, EGLImage image)
 {
-    uint64_t gbuffer_id = (uint64_t)image;
-    Window_Buffer *surface = get_surface_from_gbuffer_id(gbuffer_id);
 
-    Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
-    Process_Context *process_context = thread_context->process_context;
-
-    EGL_Image *real_image = get_image_from_gbuffer_id(gbuffer_id);
-
-    if (surface != NULL && real_image == NULL)
-    {
-
-        return EGL_TRUE;
-    }
-
-    if (real_image != NULL)
-    {
-        if (real_image->target == EGL_GL_TEXTURE_2D)
-        {
-            g_hash_table_remove(process_context->gbuffer_image_map, GINT_TO_POINTER(gbuffer_id));
-        }
-        else
-        {
-            if (real_image->is_lock)
-            {
-            }
-        }
-
-        return EGL_TRUE;
-    }
-    return EGL_FALSE;
-}
-
-EGL_Image *create_real_image(void *context, uint64_t g_buffer_id, EGLenum target, int format, int stride, int width, int height, GLuint share_texture)
-{
-
-    EGL_Image *real_image = g_malloc(sizeof(EGL_Image));
-    memset(real_image, 0, sizeof(EGL_Image));
-
-    Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
-
-    int should_init = 0;
-    if (thread_context->opengl_context != NULL && target == EGL_NATIVE_BUFFER_ANDROID)
-    {
-        should_init = 1;
-    }
-    else
-    {
-    }
-
-    GLuint pre_vbo;
-    GLuint pre_texture;
-
-    if (should_init == 1)
-    {
-        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLuint *)&pre_vbo);
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint *)&pre_texture);
-    }
-
-    real_image->target = target;
-
-    real_image->fbo_sync = NULL;
-    real_image->fbo_sync_need_delete = NULL;
-    real_image->display_texture_is_use = 0;
-
-    real_image->is_lock = 0;
-    real_image->width = width;
-    real_image->height = height;
-    real_image->stride = stride;
-
-    real_image->gbuffer_id = g_buffer_id;
-
-    real_image->fbo_texture = 0;
-    real_image->display_fbo = 0;
-
-    real_image->origin_format = format;
-
-    if (target == EGL_GL_TEXTURE_2D)
-    {
-        Render_Thread_Context *thread_context = (Render_Thread_Context *)context;
-        Opengl_Context *opengl_context = thread_context->opengl_context;
-        real_image->fbo_texture = (GLuint)get_host_texture_id(opengl_context, share_texture);
-        real_image->host_has_data = 1;
-
-        return real_image;
-    }
-
-    if (format == HAL_PIXEL_FORMAT_RGBA_8888 || format == HAL_PIXEL_FORMAT_RGBX_8888)
-    {
-
-        real_image->internal_format = GL_RGBA8;
-        real_image->format = GL_RGBA;
-        real_image->pixel_type = GL_UNSIGNED_BYTE;
-
-        real_image->row_byte_len = width * 4;
-    }
-    else if (format == HAL_PIXEL_FORMAT_BGRA_8888)
-    {
-
-        real_image->internal_format = GL_RGBA8;
-        real_image->format = GL_BGRA;
-        real_image->pixel_type = GL_UNSIGNED_INT_8_8_8_8;
-        real_image->row_byte_len = width * 4;
-    }
-    else if (format == HAL_PIXEL_FORMAT_RGB_888)
-    {
-        real_image->internal_format = GL_RGB8;
-        real_image->format = GL_RGB;
-        real_image->pixel_type = GL_UNSIGNED_INT;
-        real_image->row_byte_len = width * 3;
-    }
-    else if (format == HAL_PIXEL_FORMAT_RGB_565)
-    {
-
-        real_image->internal_format = GL_RGB565;
-        real_image->format = GL_RGB;
-        real_image->pixel_type = GL_UNSIGNED_SHORT_5_6_5;
-        real_image->row_byte_len = width * 2;
-    }
-    else
-    {
-        real_image->internal_format = GL_RGBA8;
-        real_image->format = GL_RGBA;
-        real_image->pixel_type = GL_UNSIGNED_INT;
-        real_image->row_byte_len = width * 4;
-        printf("error! unknown EGLImage format %d!!!\n", format);
-    }
-
-    if (should_init == 1)
-    {
-        glGenTextures(1, &(real_image->fbo_texture));
-
-        glBindTexture(GL_TEXTURE_2D, real_image->fbo_texture);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, real_image->internal_format, width, height, 0, real_image->format, real_image->pixel_type, NULL);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        glBindTexture(GL_TEXTURE_2D, pre_texture);
-        glBindBuffer(GL_ARRAY_BUFFER, pre_vbo);
-    }
-    return real_image;
-}
-
-void destroy_real_image(EGL_Image *real_image)
-{
-    if (real_image->target != EGL_GL_TEXTURE_2D)
-    {
-        if (real_image->fbo_texture != 0)
-        {
-            glDeleteTextures(1, &(real_image->fbo_texture));
-        }
-
-        if (real_image->display_fbo != 0)
-        {
-            glDeleteFramebuffers(1, &(real_image->display_fbo));
-            glDeleteFramebuffers(1, &(real_image->display_fbo_reverse));
-
-            glDeleteTextures(1, &(real_image->fbo_texture_reverse));
-        }
-    }
-
-    if (real_image->fbo_sync != NULL)
-    {
-        glDeleteSync(real_image->fbo_sync);
-    }
-    if (real_image->fbo_sync_need_delete != NULL)
-    {
-        glDeleteSync(real_image->fbo_sync_need_delete);
-    }
-    g_free(real_image);
-    return;
+    return EGL_TRUE;
 }

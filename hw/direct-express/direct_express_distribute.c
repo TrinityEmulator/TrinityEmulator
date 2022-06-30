@@ -1,3 +1,4 @@
+
 /**
  * @file direct_express_distribute.c
  * @author Di Gao
@@ -127,7 +128,7 @@ void *get_direct_ptr(Guest_Mem *guest_mem, int *flag)
 
 void guest_write(Guest_Mem *guest, void *host, size_t start_loc, size_t length)
 {
-    if (guest == NULL)
+    if (guest == NULL || guest->all_len == 0)
     {
         return;
     }
@@ -476,7 +477,7 @@ void push_to_thread(Direct_Express_Call *call)
     uint64_t fun_id = GET_FUN_ID(call->id);
 
     assert(device_thread_info != NULL);
-    Express_Device_Info *device_info = (Express_Device_Info *)g_hash_table_lookup(device_thread_info, GINT_TO_POINTER(device_type_id));
+    Express_Device_Info *device_info = (Express_Device_Info *)g_hash_table_lookup(device_thread_info, GUINT_TO_POINTER(device_type_id));
     if (device_info == NULL)
     {
         express_printf("something bad happened %llu %llu\n", device_type_id, fun_id);
@@ -776,5 +777,5 @@ void express_device_init_common(Express_Device_Info *info)
         device_thread_info = g_hash_table_new(g_direct_hash, g_direct_equal);
     }
 
-    g_hash_table_insert(device_thread_info, GINT_TO_POINTER(info->type_id), (gpointer)info);
+    g_hash_table_insert(device_thread_info, GUINT_TO_POINTER(info->type_id), (gpointer)info);
 }

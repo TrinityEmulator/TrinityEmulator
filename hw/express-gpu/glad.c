@@ -10445,8 +10445,8 @@ static int find_extensionsGL(void) {
 static void find_coreGL(void) {
 
     /* Thank you @elmindreda
-     * https:
-     * https:
+     * https://github.com/elmindreda/greg/blob/master/templates/greg.c.in#L176
+     * https://github.com/glfw/glfw/blob/master/src/context.c#L36
      */
     int i, major, minor;
 
@@ -11240,8 +11240,8 @@ static int find_extensionsGLES1(void) {
 static void find_coreGLES1(void) {
 
     /* Thank you @elmindreda
-     * https:
-     * https:
+     * https://github.com/elmindreda/greg/blob/master/templates/greg.c.in#L176
+     * https://github.com/glfw/glfw/blob/master/src/context.c#L36
      */
     int i, major, minor;
 
@@ -12373,8 +12373,8 @@ static int find_extensionsGLES2(void) {
 static void find_coreGLES2(void) {
 
     /* Thank you @elmindreda
-     * https:
-     * https:
+     * https://github.com/elmindreda/greg/blob/master/templates/greg.c.in#L176
+     * https://github.com/glfw/glfw/blob/master/src/context.c#L36
      */
     int i, major, minor;
 
@@ -12687,8 +12687,8 @@ static int find_extensionsGLSC2(void) {
 static void find_coreGLSC2(void) {
 
     /* Thank you @elmindreda
-     * https:
-     * https:
+     * https://github.com/elmindreda/greg/blob/master/templates/greg.c.in#L176
+     * https://github.com/glfw/glfw/blob/master/src/context.c#L36
      */
     int i, major, minor;
 

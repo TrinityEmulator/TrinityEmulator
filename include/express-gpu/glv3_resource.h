@@ -9,7 +9,9 @@ void remove_host_map_ids(Resource_Map_Status *status, int n, const unsigned int 
 
 void get_host_resource_ids(Resource_Map_Status *status, GLsizei n, const unsigned int *guest_ids, unsigned int *host_ids);
 
-unsigned long long get_host_resource_id(Resource_Map_Status *status, unsigned int id);
+long long set_host_map_id(Resource_Map_Status *status, int guest_id, int host_id);
+
+long long get_host_resource_id(Resource_Map_Status *status, unsigned int id);
 int guest_has_resource_id(Resource_Map_Status *status, unsigned int id);
 
 unsigned long long get_host_texture_id(void *context, unsigned int id);
@@ -34,6 +36,8 @@ void d_glGenBuffers(void *context, GLsizei n, const GLuint *buffers);
 void d_glGenRenderbuffers(void *context, GLsizei n, const GLuint *renderbuffers);
 
 void d_glGenTextures(void *context, GLsizei n, const GLuint *textures);
+
+long long set_share_texture(void *context, GLuint texture, GLuint share_texture);
 
 void d_glGenSamplers(void *context, GLsizei count, const GLuint *samplers);
 

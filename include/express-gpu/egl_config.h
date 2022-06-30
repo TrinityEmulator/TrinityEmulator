@@ -53,7 +53,10 @@ typedef struct
 #define NUM_STENCILE_VAL 2
 #define NUM_SAMPLE_VAL 4
 
-typedef struct {int64_t hints[HINTS_LEN]} GLFWHints;
+typedef struct
+{
+    int64_t hints[HINTS_LEN]
+} GLFWHints;
 
 extern const unsigned int config_attrs[NUM_ATTRS];
 extern const int64_t config_hints[NUM_HINTS];

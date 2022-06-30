@@ -9,33 +9,28 @@
 
 typedef struct Pixel_Store_Status
 {
-    
+
     int unpack_alignment;
     int pack_alignment;
 
-    
     int unpack_row_length;
     int pack_row_length;
 
-    
     int unpack_skip_rows;
     int pack_skip_rows;
 
-    
     int unpack_skip_pixels;
     int pack_skip_pixels;
 
-    
     int unpack_skip_images;
 
-    
     int unpack_image_height;
 } Pixel_Store_Status;
 
 typedef struct Buffer_Status
 {
-    GLuint array_buffer; 
-    GLuint element_array_buffer; 
+    GLuint array_buffer;
+    GLuint element_array_buffer;
     GLuint copy_read_buffer;
     GLuint copy_write_buffer;
     GLuint pixel_pack_buffer;
@@ -46,27 +41,12 @@ typedef struct Buffer_Status
     GLuint dispatch_indirect_buffer;
     GLuint draw_indirect_buffer;
     GLuint shader_storage_buffer;
-    GLuint vertex_array_buffer; 
+    GLuint vertex_array_buffer;
 
 } Buffer_Status;
 
-
 typedef struct Attrib_Point
 {
-
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     GLuint buffer_object[MAX_VERTEX_ATTRIBS_NUM];
     GLint buffer_loc[MAX_VERTEX_ATTRIBS_NUM];
@@ -79,14 +59,7 @@ typedef struct Attrib_Point
 
     GLint remain_indices_buffer_len;
 
-    
-    GLint element_array_buffer; 
-
-
-    
-
-    
-    
+    GLint element_array_buffer;
 
 } Attrib_Point;
 
@@ -95,13 +68,6 @@ typedef struct Bound_Buffer
 
     Attrib_Point *attrib_point;
 
-    
-    
-
-    
-    
-
-    
     GHashTable *vao_point_data;
 
     GLuint asyn_unpack_texture_buffer;
@@ -110,20 +76,16 @@ typedef struct Bound_Buffer
     Buffer_Status buffer_status;
 
     int has_init;
-    
 
 } Bound_Buffer;
 
 typedef struct Resource_Map_Status
 {
 
-    
-    
-
     unsigned int max_id;
     unsigned int map_size;
-    
-    unsigned long long *resource_id_map;
+
+    long long *resource_id_map;
 } Resource_Map_Status;
 
 typedef struct Share_Resources
@@ -131,18 +93,14 @@ typedef struct Share_Resources
 
     int counter;
 
-    
     Resource_Map_Status texture_resource;
     Resource_Map_Status buffer_resource;
     Resource_Map_Status render_buffer_resource;
     Resource_Map_Status sample_resource;
 
-    
-    
     Resource_Map_Status program_resource;
     Resource_Map_Status shader_resource;
 
-    
     Resource_Map_Status sync_resource;
 
 } Share_Resources;
@@ -150,39 +108,33 @@ typedef struct Share_Resources
 typedef struct Exclusive_Resources
 {
 
-    
     Resource_Map_Status frame_buffer_resource;
     Resource_Map_Status program_pipeline_resource;
     Resource_Map_Status transform_feedback_resource;
     Resource_Map_Status vertex_array_resource;
 
-    
     Resource_Map_Status query_resource;
 
 } Exclusive_Resources;
 
 typedef struct Resource_Context
 {
-    
+
     Resource_Map_Status *texture_resource;
     Resource_Map_Status *buffer_resource;
     Resource_Map_Status *render_buffer_resource;
     Resource_Map_Status *sampler_resource;
 
-    
     Resource_Map_Status *shader_resource;
     Resource_Map_Status *program_resource;
 
-    
     Resource_Map_Status *sync_resource;
 
-    
     Resource_Map_Status *frame_buffer_resource;
     Resource_Map_Status *program_pipeline_resource;
     Resource_Map_Status *transform_feedback_resource;
     Resource_Map_Status *vertex_array_resource;
 
-    
     Resource_Map_Status *query_resource;
 
     Share_Resources *share_resources;
@@ -192,14 +144,14 @@ typedef struct Resource_Context
 
 typedef struct Opengl_Context
 {
-    
+
     void *window;
 
-    
     Bound_Buffer bound_buffer_status;
 
     Resource_Context resource_status;
 
+    void *share_context;
     GHashTable *buffer_map;
     GLuint draw_fbo0;
     GLuint read_fbo0;
@@ -210,18 +162,25 @@ typedef struct Opengl_Context
     GLsizei view_w;
     GLsizei view_h;
 
-    Window_Buffer *draw_surface;
-
-    
     int is_current;
     int need_destroy;
+    EGLContext guest_context;
 
-    
-    EGL_Image *bind_image;
     GLuint current_active_texture;
     GLuint *current_texture_2D;
+    GLuint is_using_external_program;
     GLuint current_texture_external;
-    GLenum current_target;
+    GLuint current_pack_buffer;
+    GLuint current_unpack_buffer;
+
+    GLuint enable_scissor;
+
+    GLuint *fbo_delete;
+    int fbo_delete_loc;
+    int fbo_delete_cnt;
+
+    int independ_mode;
+
 } Opengl_Context;
 
 typedef struct Guest_Host_Map
@@ -234,26 +193,12 @@ typedef struct Guest_Host_Map
 } Guest_Host_Map;
 
 extern GHashTable *program_is_external_map;
-extern GHashTable *to_external_texture_id_map;
+
 extern GHashTable *program_data_map;
-
-
-int pixel_size_calc(GLenum format, GLenum type);
-
-
-size_t gl_sizeof(GLenum type);
-
-size_t gl_pname_size(GLenum pname);
 
 void get_program_data(GLuint program, int buf_len, GLchar *program_data);
 
 int init_program_data(GLuint program);
-
-
-
-
-
-
 
 void d_glBindFramebuffer_special(void *context, GLenum target, GLuint framebuffer);
 
@@ -273,53 +218,28 @@ void d_glGetStringi_special(void *context, GLenum name, GLuint index, GLubyte *b
 
 void d_glViewport_special(void *context, GLint x, GLint y, GLsizei width, GLsizei height);
 
-
-
 void d_glUseProgram_special(void *context, GLuint program);
 
 void d_glEGLImageTargetTexture2DOES(void *context, GLenum target, GLeglImageOES image);
 
-void d_glBindEGLImage(void *context, GLenum target, GLeglImageOES image);
+void d_glBindEGLImage(void *context, GLenum target, uint64_t image, GLuint texture, GLuint share_texture, EGLContext share_ctx);
 
 void d_glEGLImageTargetRenderbufferStorageOES(void *context, GLenum target, GLeglImageOES image);
-
-
 
 void resource_context_init(Resource_Context *resources, Share_Resources *share_resources);
 
 void resource_context_destroy(Resource_Context *resources);
 
-Opengl_Context *opengl_context_create(Opengl_Context *share_context);
+Opengl_Context *opengl_context_create(Opengl_Context *share_context, int independ_mode);
+
+void opengl_context_add_fbo(Opengl_Context *context, GLuint fbo);
 
 void opengl_context_init(Opengl_Context *context);
 
 void opengl_context_destroy(Opengl_Context *context);
 
-void glTestIntAsyn(GLint a, GLuint b, GLfloat c, GLdouble d);
+void *get_native_opengl_context(int independ_mode);
 
-void glPrintfAsyn(GLint a, GLuint size, GLdouble c, const GLchar *out_string);
-
-GLint glTestInt1(GLint a, GLuint b);
-GLuint glTestInt2(GLint a, GLuint b);
-
-GLint64 glTestInt3(GLint64 a, GLuint64 b);
-GLuint64 glTestInt4(GLint64 a, GLuint64 b);
-
-GLfloat glTestInt5(GLint a, GLuint b);
-GLdouble glTestInt6(GLint a, GLuint b);
-
-void glTestPointer1(GLint a, const GLint *b);
-
-void glTestPointer2(GLint a, const GLint *b, GLint *c);
-
-GLint d_glTestPointer3(void *context, GLint a, const GLint *b, GLint *c);
-
-GLint glTestPointer4(GLint a, const GLint *b, GLint *c);
-
-void glTestString(GLint a, GLint count, const GLchar *const *strings, GLint buf_len, GLchar *char_buf);
-
-void d_glPrintf(void *context, GLint buf_len, const GLchar *out_string);
-
-void d_glInOutTest(void *context, GLint a, GLint b, const GLchar *e, GLint *c, GLdouble *d, GLsizei buf_len, GLchar *f);
+void release_native_opengl_context(void *native_context, int independ_mode);
 
 #endif

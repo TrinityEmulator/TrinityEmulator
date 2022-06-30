@@ -3,6 +3,7 @@
 #include "direct-express/direct_express_distribute.h"
 #include "direct-express/express_device_common.h"
 #include "express-gpu/glv3_context.h"
+#include "express-gpu/gl_helper.h"
 
 void gl_pixel_data_loc(void *store_status, GLsizei width, GLsizei height, GLenum format, GLenum type, int pack, int *start_loc, int *end_loc);
 
@@ -39,10 +40,9 @@ void d_glReadPixels_with_bound(void *context, GLint x, GLint y, GLsizei width, G
 
 void d_glReadBuffer_special(void *context, GLenum src);
 
+void d_glGraphicBufferData(void *context, EGLContext ctx, uint64_t g_buffer_id, int width, int height, int buf_len, int row_byte_len, int stride, const void *real_buffer);
 
-void d_glGraphicBufferData(void *context, uint64_t g_buffer_id, int buf_len, const void *real_buffer);
-
-void d_glReadGraphicBuffer(void *context, uint64_t g_buffer_id, int buf_len, void *real_buffer);
+void d_glReadGraphicBuffer(void *context, EGLContext ctx, uint64_t g_buffer_id, int width, int height, int buf_len, int row_byte_len, int stride, void *real_buffer);
 
 void d_glBindTexture_special(void *context, GLenum target, GLuint texture);
 

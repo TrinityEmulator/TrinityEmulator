@@ -1,3 +1,4 @@
+
 /**
  * @file glv3_context.c
  * @author Di Gao
@@ -56,6 +57,7 @@ GLuint get_buffer_binding_id(void *context, GLenum target)
     case GL_SHADER_STORAGE_BUFFER:
         return status->shader_storage_buffer;
     default:
+        printf("get_buffer_binding_id error target %x\n", target);
         return 0;
     }
     return 0;
@@ -67,8 +69,15 @@ void d_glBufferData_custom(void *context, GLenum target, GLsizeiptr size, const 
     Guest_Mem *guest_mem = (Guest_Mem *)data;
     Scatter_Data *s_data = guest_mem->scatter_data;
 
+    express_printf("%llx %s target %x size %lld usage %x\n", context, __FUNCTION__, target, size, usage);
+    if (size == 0)
+    {
+        return;
+    }
+
     if (guest_mem->all_len == 0)
     {
+        express_printf("glBufferData null\n");
         glBufferData(target, size, NULL, usage);
         return;
     }
@@ -77,6 +86,10 @@ void d_glBufferData_custom(void *context, GLenum target, GLsizeiptr size, const 
     {
 
         glBufferData(target, size, s_data[0].data, usage);
+
+        uint32_t crc = 0;
+
+        express_printf("glBufferData direct %d crc %x\n", size, crc);
     }
     else
     {
@@ -84,6 +97,8 @@ void d_glBufferData_custom(void *context, GLenum target, GLsizeiptr size, const 
         glBufferData(target, size, NULL, usage);
         GLubyte *map_pointer = glMapBufferRange(target, 0, size, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
         host_guest_buffer_exchange(s_data, map_pointer, 0, size, 1);
+
+        express_printf("glBufferData indirect %d\n", size);
 
         glUnmapBuffer(target);
     }
@@ -138,7 +153,7 @@ void d_glMapBufferRange_write(void *context, GLenum target, GLintptr offset, GLs
     GLubyte *map_pointer = glMapBufferRange(target, offset, length, access);
 
     GHashTable *buffer_map = ((Opengl_Context *)context)->buffer_map;
-    Guest_Host_Map *map_res = g_hash_table_lookup(buffer_map, GINT_TO_POINTER(target));
+    Guest_Host_Map *map_res = g_hash_table_lookup(buffer_map, (gpointer)((((guint64)target) << 32) + get_buffer_binding_id(context, target)));
     if (map_res == NULL)
     {
         map_res = g_malloc(sizeof(Guest_Host_Map));
@@ -147,6 +162,8 @@ void d_glMapBufferRange_write(void *context, GLenum target, GLintptr offset, GLs
     }
     else
     {
+
+        printf("error! map_res is not NULL!\n");
     }
 
     map_res->access = access;
@@ -163,8 +180,11 @@ GLboolean d_glUnmapBuffer_special(void *context, GLenum target)
     if (map_res == NULL)
     {
 
+        printf("error! unmap get NULL map_res!\n");
         return GL_FALSE;
     }
+
+    express_printf("unmap target %x\n", target);
 
     GLboolean ret = glUnmapBuffer(target);
     g_hash_table_remove(buffer_map, (gpointer)((((guint64)target) << 32) + get_buffer_binding_id(context, target)));
@@ -181,16 +201,21 @@ void d_glFlushMappedBufferRange_special(void *context, GLenum target, GLintptr o
         map_res = g_malloc(sizeof(Guest_Host_Map));
         memset(map_res, 0, sizeof(Guest_Host_Map));
         g_hash_table_insert(buffer_map, (gpointer)((((guint64)target) << 32) + get_buffer_binding_id(context, target)), (gpointer)map_res);
-
+        printf("error! flush data get NULL map_res!\n");
         return;
     }
     if (map_res->host_data == NULL)
     {
+        printf("error! host data get NULL!\n");
         return;
     }
     if (map_res->access & GL_MAP_WRITE_BIT)
     {
         guest_write((Guest_Mem *)data, map_res->host_data + offset, 0, length);
+
+        uint32_t crc = 0;
+
+        express_printf("flush mapbufferrange target %x offset %d length %d access %x crc %x\n", (int)target, (int)offset, (int)length, (int)map_res->access, crc);
         if ((map_res->access & GL_MAP_FLUSH_EXPLICIT_BIT))
         {
             glFlushMappedBufferRange(target, offset, length);

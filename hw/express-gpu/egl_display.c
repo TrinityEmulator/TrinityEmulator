@@ -18,7 +18,7 @@ EGLBoolean add_config(Egl_Display *display, eglConfig *config)
     if (!is_config_in_table(config, display->egl_config_set))
     {
         config->config_id = g_hash_table_size(display->egl_config_set) + 1;
-        g_hash_table_insert(display->egl_config_set, GINT_TO_POINTER(config->config_id), (gpointer)config);
+        g_hash_table_insert(display->egl_config_set, GUINT_TO_POINTER(config->config_id), (gpointer)config);
         return EGL_TRUE;
     }
     else
@@ -32,7 +32,7 @@ void add_window_independent_config(Egl_Display *display, EGLint attr_enum, EGLin
     int config_set_size = g_hash_table_size(display->egl_config_set);
     for (int i = 0; i < config_set_size; i++)
     {
-        eglConfig *config = (eglConfig *)g_hash_table_lookup(default_egl_display->egl_config_set, GINT_TO_POINTER(i + 1));
+        eglConfig *config = (eglConfig *)g_hash_table_lookup(default_egl_display->egl_config_set, GUINT_TO_POINTER(i + 1));
         for (int j = 0; j < val_size; j++)
         {
             eglConfig *new_config = (eglConfig *)g_malloc(sizeof(eglConfig));

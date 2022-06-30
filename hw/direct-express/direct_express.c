@@ -1,3 +1,4 @@
+
 /**
  * @file direct_express.c
  * @author Di Gao
@@ -8,6 +9,7 @@
  * @copyright Copyright (c) 2020
  * 
  */
+
 #include "direct-express/direct_express.h"
 #include "direct-express/direct_express_distribute.h"
 #include "direct-express/express_log.h"

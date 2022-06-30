@@ -8,22 +8,19 @@
  * @copyright Copyright (c) 2020
  * 
  */
+
 #include "qemu/osdep.h"
 #include "qemu/atomic.h"
-
 #include "express-gpu/express_gpu_render.h"
-
 #include "direct-express/direct_express.h"
 #include "direct-express/express_log.h"
-
 #include "express-gpu/egl_context.h"
 #include "express-gpu/glv3_context.h"
 #include "express-gpu/glv1.h"
-
+#include "express-gpu/gl_helper.h"
 #include "ui/console.h"
 #include "ui/input.h"
 #include "sysemu/runstate.h"
-
 #include "express-gpu/sdl_control.h"
 
 GAsyncQueue *main_window_event_queue = NULL;
@@ -38,8 +35,8 @@ static unsigned int main_frame_num = 0;
 static int event_queue_lock;
 static GQueue *sync_event_queue;
 
-static GHashTable *gbuffer_id_surface_map = NULL;
-static GHashTable *gbuffer_id_image_map = NULL;
+static GHashTable *gbuffer_global_map = NULL;
+static volatile int gbuffer_global_map_lock = 0;
 
 static int calc_screen_hz = 0;
 
@@ -73,20 +70,33 @@ static long window_height = 0;
 static long real_window_width = 0;
 static long real_window_height = 0;
 
-static Window_Buffer *compose_surface;
-static int compose_surface_lock = 0;
+static double mouse_pos_record[100][100];
+static int mouse_pos_record_num[100];
+static int key_repeat_cnt[100];
+static int mouse_click_record[100];
+static int key_is_repeat[100];
+static int now_press_key;
+static double now_mouse_xpos;
+static double now_mouse_ypos;
+
+static bool is_replaying;
+static int replaying_key;
+
+static bool is_click;
+
+static Graphic_Buffer *display_gbuffer;
 
 volatile int native_render_run = 0;
 
 static QemuConsole *input_receive_con = NULL;
 
-static const GLubyte GPU_VENDOR[] = "Qualcomm";
-static const GLubyte GPU_VERSION[] = "OpenGL ES 3.0 (";
-static const GLubyte GPU_RENDERER[] = "Adreno (TM) 660";
+static const GLubyte GPU_VENDOR[] = "ARM";
+static const GLubyte GPU_VERSION[] = "OpenGL ES 3.1 (";
+static const GLubyte GPU_RENDERER[] = "Mali-G77";
 static const GLubyte GPU_SHADER_LANGUAGE_VERSION[] = "OpenGL ES GLSL ES 3.10";
 
 static const int OPENGL_MAJOR_VERSION = 3;
-static const int OPENGL_MINOR_VERSION = 0;
+static const int OPENGL_MINOR_VERSION = 1;
 
 static const GLubyte *SPECIAL_EXTENSIONS[] =
     {
@@ -96,7 +106,7 @@ static const GLubyte *SPECIAL_EXTENSIONS[] =
         /*4*/ "GL_OES_depth24",
         /*5*/ "GL_OES_depth32",
         /*6*/ "GL_OES_texture_float",
-        /*25*/ "GL_OES_texture_float_linear",
+        /*15*/ "GL_OES_texture_float_linear",
         /*7*/ "GL_OES_texture_half_float",
         /*8*/ "GL_OES_texture_half_float_linear",
         /*9*/ "GL_OES_compressed_ETC1_RGB8_texture",
@@ -115,8 +125,30 @@ static const GLubyte *SPECIAL_EXTENSIONS[] =
         /*22*/ "GL_OES_texture_npot",
         /*23*/ "GL_OES_rgb8_rgba8",
         /*24*/ "GL_OES_framebuffer_object",
+        /*25*/ "GL_ARB_texture_non_power_of_two",
+        /*26*/ "GL_OES_blend_func_separate",
+        /*27*/ "GL_OES_blend_equation_separate",
+        /*28*/ "GL_OES_blend_subtract",
+        /*29*/ "GL_OES_byte_coordinates",
+        /*30*/ "GL_OES_point_size_array",
+        /*31*/ "GL_OES_point_sprite",
+        /*32*/ "GL_OES_single_precision",
+        /*33*/ "GL_OES_stencil_wrap",
+        /*34*/ "GL_OES_texture_env_crossbar",
+        /*35*/ "GL_OES_texture_mirrored_repeat",
+        /*36*/ "GL_OES_texture_cube_map",
+        /*37*/ "GL_OES_draw_texture",
+        /*38*/ "GL_OES_fbo_render_mipmap",
+        /*39*/ "GL_OES_stencil8",
+        /*41*/ "GL_EXT_blend_minmax",
+        /*42*/ "GL_OES_standard_derivatives",
+        /*43*/ "GL_EXT_robustness",
+        /*44*/ "GL_EXT_copy_image",
+        /*45*/ "GL_EXT_texture_buffer",
+        /*46*/ "GL_OES_vertex_half_float",
+
 };
-static const int SPECIAL_EXTENSIONS_SIZE = 24;
+static const int SPECIAL_EXTENSIONS_SIZE = 46 - 1;
 
 static const GLubyte *NOT_SUPPORT_EXTENSIONS[] =
     {
@@ -147,12 +179,14 @@ static const GLubyte *NOT_SUPPORT_EXTENSIONS[] =
         /*23*/ "GL_CHROMIUM_bind_uniform_location"};
 static const int NOT_SUPPORT_EXTENSION_SIZE = 23;
 
-static void opengl_paint(Window_Buffer *d_buffer);
-static void *native_window_create();
+static void opengl_paint(Graphic_Buffer *gbuffer);
+static void *native_window_create(int independ_mode);
 
 static void g_queue_event_notify(gpointer data, gpointer user_data);
 
 Notifier shutdown_notifier;
+
+static Dying_List *dying_gbuffer;
 
 static gint64 last_click_time = 0;
 static void close_window_callback(GLFWwindow *window)
@@ -176,8 +210,8 @@ static void shutdown_notify_callback(Notifier *notifier, void *data)
     printf("notify shutdown! %lld\n", g_get_real_time());
 
     ATOMIC_UNLOCK(main_window_event_queue_lock);
-    ATOMIC_UNLOCK(compose_surface_lock);
-    set_compose_surface(NULL, NULL);
+
+    display_gbuffer = NULL;
     direct_express_should_stop = true;
 
     if (native_render_run == 2)
@@ -217,11 +251,70 @@ static void keyboard_handle_callback(GLFWwindow *window, int key, int code, int 
         down = true;
     }
 
-    qemu_input_event_send_key_qcode(input_receive_con, (QKeyCode)qcode, down);
+    if ((mods & GLFW_MOD_ALT) != 0 && (action == GLFW_PRESS || action == GLFW_REPEAT) && key < 100)
+    {
+        if (key_is_repeat[key] == 0)
+        {
+
+            now_press_key = key;
+            key_is_repeat[key] = 1;
+            mouse_click_record[key] = 0;
+            mouse_pos_record_num[key] = 0;
+            key_repeat_cnt[key] = 0;
+        }
+    }
+
+    if (action == GLFW_RELEASE && key < 100)
+    {
+        key_is_repeat[key] = 0;
+        now_press_key = 0;
+    }
+
+    if (mouse_click_record[key] == 1 && key_is_repeat[key] == 0)
+    {
+
+        if (action == GLFW_PRESS)
+        {
+
+            if (is_click)
+            {
+                qemu_input_queue_btn(input_receive_con, INPUT_BUTTON_LEFT, false);
+                is_click = false;
+            }
+            if (is_replaying)
+            {
+                return;
+            }
+            is_replaying = true;
+            replaying_key = key;
+            key_repeat_cnt[key] = 0;
+        }
+        else if (action == GLFW_REPEAT)
+        {
+        }
+        else
+        {
+            is_replaying = false;
+
+            qemu_input_queue_btn(input_receive_con, INPUT_BUTTON_LEFT, false);
+        }
+    }
+    else
+    {
+        qemu_input_event_send_key_qcode(input_receive_con, (QKeyCode)qcode, down);
+    }
 }
 
 static void mouse_move_handle_callback(GLFWwindow *window, double xpos, double ypos)
 {
+    now_mouse_xpos = xpos;
+    now_mouse_ypos = ypos;
+
+    if (is_replaying)
+    {
+        return;
+    }
+
 #ifdef ENSURE_SAME_WIDTH_HEIGHT_RATIO
     qemu_input_queue_abs(input_receive_con, INPUT_AXIS_X, (int)(xpos / real_window_width * window_width), 0, window_width);
     qemu_input_queue_abs(input_receive_con, INPUT_AXIS_Y, (int)(ypos / real_window_height * window_height), 0, window_height);
@@ -249,6 +342,16 @@ static void mouse_move_handle_callback(GLFWwindow *window, double xpos, double y
 static void mouse_click_handle_callback(GLFWwindow *window, int button, int action, int mods)
 {
     InputButton btn;
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        if (now_press_key != 0)
+        {
+
+            mouse_click_record[now_press_key] = 1;
+        }
+    }
+
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
         btn = INPUT_BUTTON_LEFT;
@@ -271,6 +374,13 @@ static void mouse_click_handle_callback(GLFWwindow *window, int button, int acti
     {
         press = false;
     }
+
+    if (is_click == press || is_replaying)
+    {
+        return;
+    }
+    is_click = press;
+
     qemu_input_queue_btn(input_receive_con, btn, press);
 }
 
@@ -359,11 +469,39 @@ void window_size_change_callback(GLFWwindow *window, int width, int height)
     }
 }
 
+static int try_destroy_gbuffer(void *data)
+{
+    Graphic_Buffer *gbuffer = (Graphic_Buffer *)data;
+
+    if (gbuffer == NULL)
+    {
+        return 1;
+    }
+
+    if (gbuffer->remain_life_time > 0)
+    {
+        gbuffer->remain_life_time--;
+        return 0;
+    }
+
+    if (display_gbuffer == gbuffer)
+    {
+        display_gbuffer = NULL;
+    }
+
+    remove_gbuffer_from_global_map(gbuffer->gbuffer_id);
+    destroy_gbuffer(gbuffer);
+
+    return 1;
+}
+
 static void handle_child_window_event()
 {
     ATOMIC_LOCK(main_window_event_queue_lock);
     Main_window_Event *child_event = (Main_window_Event *)g_async_queue_try_pop(main_window_event_queue);
     ATOMIC_UNLOCK(main_window_event_queue_lock);
+
+    dying_list_foreach(dying_gbuffer, try_destroy_gbuffer);
 
     while (child_event != NULL)
     {
@@ -374,92 +512,39 @@ static void handle_child_window_event()
         case MAIN_CREATE_CHILD_WINDOW:
 
         {
-            void **window_ptr = (Window_Buffer *)child_event->data;
+            void **window_ptr = (void **)child_event->data;
             if (window_ptr == NULL)
             {
                 break;
             }
 
-            *window_ptr = (void *)native_window_create();
+            gint64 t = g_get_real_time();
+
+            int independ_mode = 0;
+            if (*window_ptr != NULL)
+            {
+                independ_mode = 1;
+            }
+
+            *window_ptr = (void *)native_window_create(independ_mode);
         }
 
         break;
-        case MAIN_DESTROY_SURFACE:
+
+        case MAIN_DESTROY_GBUFFER:
         {
-
-            Window_Buffer *surface = (Window_Buffer *)child_event->data;
-            if (surface == NULL)
+            Graphic_Buffer *gbuffer = (Graphic_Buffer *)child_event->data;
+            if (gbuffer->gbuffer_id == 0)
             {
-                break;
+                destroy_gbuffer(gbuffer);
             }
-            if (surface->I_am_composer)
+            else
             {
-                set_compose_surface(surface, NULL);
+                dying_gbuffer = dying_list_append(dying_gbuffer, gbuffer);
             }
-            if (surface->guest_gbuffer_id != 0)
-            {
-                set_surface_gbuffer_id(NULL, surface->guest_gbuffer_id);
-            }
-
-            if (surface->type == WINDOW_SURFACE && get_surface_from_gbuffer_id(surface->guest_gbuffer_id) == surface)
-            {
-
-                set_surface_gbuffer_id(NULL, surface->guest_gbuffer_id);
-            }
-
-            glDeleteTextures(surface->buffer_num, surface->fbo_texture);
-            glDeleteRenderbuffers(surface->buffer_num, surface->display_rbo_depth);
-            glDeleteRenderbuffers(surface->buffer_num, surface->display_rbo_stencil);
-            if (surface->config->sample_buffers_num != 0)
-            {
-                glDeleteRenderbuffers(surface->buffer_num, surface->sampler_rbo);
-            }
-            for (int i = 0; i < 5; i++)
-            {
-                if (surface->delete_sync[i] != 0)
-                {
-                    glDeleteSync(surface->delete_sync[i]);
-                }
-            }
-            g_free(surface);
         }
         break;
-        case MAIN_DESTROY_CONTEXT:
-        {
-            Opengl_Context *opengl_context = (Opengl_Context *)child_event->data;
-            if (opengl_context == NULL)
-            {
-                break;
-            }
 
-            if (opengl_context->window != NULL)
-            {
-
-#ifdef USE_GLFW_AS_WGL
-                glfwSetWindowShouldClose(opengl_context->window, 1);
-                glfwDestroyWindow((GLFWwindow *)opengl_context->window);
-#else
-
-#endif
-            }
-
-            opengl_context_destroy(opengl_context);
-            g_free(opengl_context);
-        }
-        break;
-        case MAIN_DESTROY_IMAGE:
-        {
-            EGL_Image *real_image = (EGL_Image *)child_event->data;
-            if (real_image == NULL)
-            {
-                break;
-            }
-            set_image_gbuffer_id(real_image, NULL, real_image->gbuffer_id);
-            express_printf("real destroy image %lx\n", real_image);
-
-            destroy_real_image(real_image);
-        }
-        break;
         case MAIN_DESTROY_ALL_EGLSYNC:
         {
             Resource_Map_Status *status = (Resource_Map_Status *)child_event->data;
@@ -492,17 +577,7 @@ static void handle_child_window_event()
             glDeleteSync(sync);
         }
         break;
-        case MAIN_DESTROY_ONE_TEXTURE:
-        {
-            GLuint texture = (GLsync)child_event->data;
-            if (texture == 0)
-            {
-                break;
-            }
 
-            glDeleteTextures(1, &texture);
-        }
-        break;
         default:
 
             break;
@@ -516,6 +591,7 @@ static void handle_child_window_event()
 
     return;
 }
+
 
 static GLuint load_shader(GLenum type, const char *shaderSrc)
 {
@@ -558,6 +634,7 @@ static GLuint load_shader(GLenum type, const char *shaderSrc)
 
     return shader;
 }
+
 
 static int opengl_prepare(GLint *program, GLint *VAO)
 {
@@ -644,7 +721,7 @@ static int opengl_prepare(GLint *program, GLint *VAO)
 
     glUseProgram(programObject);
 
-    glClearColor(0, 1, 0, 1);
+    glClearColor(0, 0, 0, 1);
 
     return 1;
 }
@@ -695,8 +772,61 @@ static void static_value_prepare()
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &(preload_static_context_value->max_texture_size));
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &(preload_static_context_value->max_vertex_attribs));
     glGetIntegerv(GL_MAX_VERTEX_UNIFORM_COMPONENTS, &(preload_static_context_value->max_vertex_uniform_components));
+
+    glGetIntegerv(GL_MAX_IMAGE_UNITS, &(preload_static_context_value->max_image_units));
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIB_BINDINGS, &(preload_static_context_value->max_vertex_attrib_bindings));
+    glGetIntegerv(GL_MAX_COMPUTE_UNIFORM_BLOCKS, &(preload_static_context_value->max_computer_uniform_blocks));
+    glGetIntegerv(GL_MAX_COMPUTE_TEXTURE_IMAGE_UNITS, &(preload_static_context_value->max_computer_texture_image_units));
+    glGetIntegerv(GL_MAX_COMPUTE_IMAGE_UNIFORMS, &(preload_static_context_value->max_computer_image_uniforms));
+    glGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &(preload_static_context_value->max_computer_sharde_memory_size));
+    glGetIntegerv(GL_MAX_COMPUTE_UNIFORM_COMPONENTS, &(preload_static_context_value->max_computer_uniform_components));
+    glGetIntegerv(GL_MAX_COMPUTE_ATOMIC_COUNTER_BUFFERS, &(preload_static_context_value->max_computer_atomic_counter_buffers));
+    glGetIntegerv(GL_MAX_COMPUTE_ATOMIC_COUNTERS, &(preload_static_context_value->max_computer_atomic_counters));
+    glGetIntegerv(GL_MAX_COMBINED_COMPUTE_UNIFORM_COMPONENTS, &(preload_static_context_value->max_combined_compute_uniform_components));
+    glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &(preload_static_context_value->max_computer_work_group_invocations));
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &(preload_static_context_value->max_computer_work_group_count[0]));
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &(preload_static_context_value->max_computer_work_group_count[1]));
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &(preload_static_context_value->max_computer_work_group_count[2]));
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &(preload_static_context_value->max_computer_work_group_size[0]));
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &(preload_static_context_value->max_computer_work_group_size[1]));
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &(preload_static_context_value->max_computer_work_group_size[2]));
+
+    glGetIntegerv(GL_MAX_UNIFORM_LOCATIONS, &(preload_static_context_value->max_uniform_locations));
+    glGetIntegerv(GL_MAX_FRAMEBUFFER_WIDTH, &(preload_static_context_value->max_framebuffer_width));
+    glGetIntegerv(GL_MAX_FRAMEBUFFER_HEIGHT, &(preload_static_context_value->max_framebuffer_height));
+    glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &(preload_static_context_value->max_framebuffer_samples));
+    glGetIntegerv(GL_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS, &(preload_static_context_value->max_vertex_atomic_counter_buffers));
+    glGetIntegerv(GL_MAX_FRAGMENT_ATOMIC_COUNTER_BUFFERS, &(preload_static_context_value->max_fragment_atomic_counter_buffers));
+    glGetIntegerv(GL_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS, &(preload_static_context_value->max_combined_atomic_counter_buffers));
+    glGetIntegerv(GL_MAX_FRAGMENT_ATOMIC_COUNTERS, &(preload_static_context_value->max_fragment_atomic_counters));
+    glGetIntegerv(GL_MAX_COMBINED_ATOMIC_COUNTERS, &(preload_static_context_value->max_combined_atomic_counters));
+    glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_SIZE, &(preload_static_context_value->max_atomic_counter_buffer_size));
+    glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &(preload_static_context_value->max_atomic_counter_buffer_bindings));
+    glGetIntegerv(GL_MAX_VERTEX_IMAGE_UNIFORMS, &(preload_static_context_value->max_vertex_image_uniforms));
+    glGetIntegerv(GL_MAX_FRAGMENT_IMAGE_UNIFORMS, &(preload_static_context_value->max_fragment_image_uniforms));
+    glGetIntegerv(GL_MAX_COMBINED_IMAGE_UNIFORMS, &(preload_static_context_value->max_combined_image_uniforms));
+    glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &(preload_static_context_value->max_vertex_shader_storage_blocks));
+    glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &(preload_static_context_value->max_fragment_shader_storage_blocks));
+    glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &(preload_static_context_value->max_compute_shader_storage_blocks));
+    glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &(preload_static_context_value->max_combined_shader_storage_blocks));
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &(preload_static_context_value->max_shader_storage_buffer_bindings));
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &(preload_static_context_value->max_shader_storage_block_size));
+    glGetIntegerv(GL_MAX_COMBINED_SHADER_OUTPUT_RESOURCES, &(preload_static_context_value->max_combined_shader_output_resources));
+    glGetIntegerv(GL_MIN_PROGRAM_TEXTURE_GATHER_OFFSET, &(preload_static_context_value->min_program_texture_gather_offset));
+    glGetIntegerv(GL_MAX_PROGRAM_TEXTURE_GATHER_OFFSET, &(preload_static_context_value->max_program_texture_gather_offset));
+    glGetIntegerv(GL_MAX_SAMPLE_MASK_WORDS, &(preload_static_context_value->max_sample_mask_words));
+    glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &(preload_static_context_value->max_color_texture_samples));
+    glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &(preload_static_context_value->max_depth_texture_samples));
+    glGetIntegerv(GL_MAX_INTEGER_SAMPLES, &(preload_static_context_value->max_integer_samples));
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET, &(preload_static_context_value->max_vertex_attrib_relative_offset));
+
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIB_STRIDE, &(preload_static_context_value->max_vertex_attrib_stride));
+
     glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &(preload_static_context_value->max_vertex_texture_image_units));
     glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &(preload_static_context_value->max_vertex_uniform_vectors));
+
     glGetIntegerv(GL_MAX_VIEWPORT_DIMS, &(preload_static_context_value->max_viewport_dims));
     glGetIntegerv(GL_NUM_SHADER_BINARY_FORMATS, &(preload_static_context_value->num_shader_binary_formats));
     glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &(preload_static_context_value->num_compressed_texture_formats));
@@ -708,13 +838,13 @@ static void static_value_prepare()
     glGetIntegerv(GL_MAX_FRAGMENT_INPUT_COMPONENTS, &(preload_static_context_value->max_fragment_input_components));
     glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &(preload_static_context_value->max_fragment_uniform_blocks));
     glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &(preload_static_context_value->max_fragment_uniform_vectors));
+
     glGetIntegerv(GL_MAX_PROGRAM_TEXEL_OFFSET, &(preload_static_context_value->max_program_texel_offset));
     glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &(preload_static_context_value->max_transform_feedback_separate_attribs));
     glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS, &(preload_static_context_value->max_transform_feedback_separate_components));
     glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS, &(preload_static_context_value->max_transform_feedback_interleaved_components));
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &(preload_static_context_value->max_uniform_buffer_bindings));
-    glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &(preload_static_context_value->max_atomic_counter_buffer_bindings));
-    glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &(preload_static_context_value->max_shader_storage_buffer_bindings));
+
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &(preload_static_context_value->max_varying_vectors));
     glGetIntegerv(GL_MAX_VARYING_COMPONENTS, &(preload_static_context_value->max_varying_components));
     glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &(preload_static_context_value->max_vertex_output_components));
@@ -723,6 +853,10 @@ static void static_value_prepare()
     glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &(preload_static_context_value->num_program_binary_formats));
 
     glGetIntegerv(GL_SUBPIXEL_BITS, &(preload_static_context_value->subpixel_bits));
+
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &(preload_static_context_value->texture_image_units));
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &(preload_static_context_value->uniform_buffer_offset_alignment));
+    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &(preload_static_context_value->max_texture_anisotropy));
 
     glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, preload_static_context_value->aliased_line_width_range);
     glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, preload_static_context_value->aliased_point_size_range);
@@ -734,9 +868,25 @@ static void static_value_prepare()
     glGetInteger64v(GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS, &(preload_static_context_value->max_combined_fragment_uniform_components));
     glGetInteger64v(GL_MAX_UNIFORM_BLOCK_SIZE, &(preload_static_context_value->max_uniform_block_size));
 
-    if (preload_static_context_value->max_vertex_attribs > 16)
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR)
     {
-        preload_static_context_value->max_vertex_attribs = 16;
+        printf("error when creating static vaules %x\n", error);
+    }
+
+    if (preload_static_context_value->max_vertex_attribs > 32)
+    {
+        preload_static_context_value->max_vertex_attribs = 32;
+    }
+
+    if (preload_static_context_value->max_image_units > 16)
+    {
+        preload_static_context_value->max_image_units = 16;
+    }
+
+    if (preload_static_context_value->max_vertex_attrib_bindings > 32)
+    {
+        preload_static_context_value->max_vertex_attrib_bindings = 32;
     }
 
     preload_static_context_value->num_compressed_texture_formats += 1;
@@ -775,13 +925,10 @@ static void static_value_prepare()
 
     memcpy(temp_loc, GPU_VENDOR, sizeof(GPU_VENDOR) - 1);
     temp_loc += sizeof(GPU_VENDOR) - 1;
-    // memcpy(temp_loc, gl_string, strlen(gl_string));
-    // temp_loc += strlen(gl_string);
-    // *temp_loc = ')';
-    // temp_loc++;
+
     *temp_loc = 0;
     temp_loc++;
-    printf("\ngl vendor: %s\n", string_loc + (unsigned long)(preload_static_context_value->vendor));
+    printf("\ngl vendor:%s\n", (char *)gl_string);
 
     gl_string = glGetString(GL_VERSION);
     preload_static_context_value->version = (unsigned long long)(temp_loc - string_loc);
@@ -794,27 +941,24 @@ static void static_value_prepare()
     temp_loc++;
     *temp_loc = 0;
     temp_loc++;
-    printf("gl version: %s\n", string_loc + (unsigned long)(preload_static_context_value->version));
+    printf("gl version:%s\n", string_loc + (unsigned long)(preload_static_context_value->version));
 
     gl_string = glGetString(GL_RENDERER);
     preload_static_context_value->renderer = (unsigned long long)(temp_loc - string_loc);
 
     memcpy(temp_loc, GPU_RENDERER, sizeof(GPU_RENDERER) - 1);
     temp_loc += sizeof(GPU_RENDERER) - 1;
-    // memcpy(temp_loc, gl_string, strlen(gl_string));
-    // temp_loc += strlen(gl_string);
-    // *temp_loc = ')';
-    // temp_loc++;
+
     *temp_loc = 0;
     temp_loc++;
-    printf("gl renderer: %s\n", string_loc + (unsigned long)(preload_static_context_value->renderer));
+    printf("gl renderer:%s\n", (char *)gl_string);
 
     preload_static_context_value->shading_language_version = (unsigned long long)(temp_loc - string_loc);
     memcpy(temp_loc, GPU_SHADER_LANGUAGE_VERSION, sizeof(GPU_SHADER_LANGUAGE_VERSION) - 1);
     temp_loc += sizeof(GPU_SHADER_LANGUAGE_VERSION) - 1;
     *temp_loc = 0;
     temp_loc++;
-    printf("gl shading_language_version: %s\n", string_loc + (unsigned long)(preload_static_context_value->shading_language_version));
+    printf("gl shading_language_version:%s\n", string_loc + (unsigned long)(preload_static_context_value->shading_language_version));
 
     char *extensions_start = temp_loc;
 
@@ -891,63 +1035,42 @@ static void static_value_prepare()
     assert(temp_loc < ((char *)preload_static_context_value) + sizeof(Static_Context_Values) + 512 * 100 + 400);
 }
 
-static void opengl_paint(Window_Buffer *d_buffer)
+
+static void opengl_paint(Graphic_Buffer *gbuffer)
 {
 
-    if (d_buffer->type == WINDOW_SURFACE)
+    if (gbuffer != NULL)
     {
-        if (is_reverse == 1)
-        {
-            is_reverse = 0;
-            glUniform1i(reverse_loc, 0);
-        }
         if (window_width == 0 || window_height == 0)
         {
-            window_width = d_buffer->width;
-            window_height = d_buffer->height;
+            window_width = gbuffer->width;
+            window_height = gbuffer->height;
             real_window_width = window_width;
             real_window_height = window_height;
             glViewport(0, 0, window_width, window_height);
         }
 
-        GLuint texture = acquire_texture_from_surface(d_buffer);
-
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, gbuffer->data_texture);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        release_texture_from_surface(d_buffer);
-    }
-    else if (d_buffer->type == P_SURFACE)
-    {
-        if (d_buffer->guest_gbuffer_id == 0)
+        if (gbuffer->data_sync != 0)
         {
-            return;
-        }
-        if (is_reverse == 0)
-        {
-            is_reverse = 1;
-            glUniform1i(reverse_loc, 1);
+
+            glWaitSync(gbuffer->data_sync, 0, GL_TIMEOUT_IGNORED);
+            if (gbuffer->delete_sync != 0)
+            {
+                glDeleteSync(gbuffer->delete_sync);
+            }
+            gbuffer->delete_sync = gbuffer->data_sync;
+            gbuffer->data_sync = NULL;
         }
 
-        EGL_Image *real_image = get_image_from_gbuffer_id(d_buffer->guest_gbuffer_id);
-
-        if (window_width == 0 || window_height == 0)
-        {
-            window_width = real_image->width;
-            window_height = real_image->height;
-            real_window_width = window_width;
-            real_window_height = window_height;
-            glViewport(0, 0, window_width, window_height);
-        }
-
-        GLuint texture = acquire_texture_from_image(real_image);
-
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glBindTexture(GL_TEXTURE_2D, gbuffer->data_texture);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        release_texture_from_image(real_image);
+        gbuffer->data_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     }
 }
 
@@ -1031,48 +1154,43 @@ static void APIENTRY gl_debug_output(GLenum source, GLenum type, GLuint id,
 }
 #endif
 
-static void *native_window_create()
+
+static void *native_window_create(int independ_mode)
 {
 
     void *child_window = NULL;
+    static int windows_cnt = 0;
+    int cnt = windows_cnt++;
 
-#ifdef USE_GLFW_AS_WGL
-    static int cnt = 0;
-    char name[100];
-    sprintf(name, "opengl-child-window%d", cnt);
-    cnt++;
-
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-#ifdef DEBUG_INDEPEND_WINDOW
-    glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-    child_window = (void *)glfwCreateWindow(1, 1, name, NULL, glfw_window);
-#else
-
-#ifdef ENABLE_OPENGL_DEBUG
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
-#endif
-    child_window = (void *)glfwCreateWindow(1, 1, name, NULL, glfw_window);
-
-    if (child_window == NULL)
+    if (independ_mode == 1)
     {
-        char *s;
-        int ret = glfwGetError(&s);
-        express_printf("error code %d detail %s", ret, s);
+        char name[100];
+        sprintf(name, "opengl-child-window%d", cnt);
+
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+        child_window = (void *)glfwCreateWindow(1, 1, name, NULL, glfw_window);
+
+        if (child_window == NULL)
+        {
+            char *s;
+            int ret = glfwGetError(&s);
+            express_printf("error code %d detail %s", ret, s);
+        }
     }
-
-#endif
-
-#else
-    child_window = egl_createContext();
-#endif
+    else
+    {
+        child_window = egl_createContext();
+    }
 
     assert(child_window != NULL);
 
     return child_window;
 }
+
 
 void *native_window_thread(void *opaque)
 {
@@ -1144,8 +1262,7 @@ void *native_window_thread(void *opaque)
         return NULL;
     }
 
-    gbuffer_id_surface_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
-    gbuffer_id_image_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
+    gbuffer_global_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
 
     prepare_draw_texi();
     static_value_prepare();
@@ -1191,21 +1308,40 @@ void *native_window_thread(void *opaque)
 
         handle_child_window_event();
         glfwPollEvents();
+
+        if (is_replaying && replaying_key != 0)
+        {
+            if (key_repeat_cnt[replaying_key] < mouse_pos_record_num[replaying_key])
+            {
+                qemu_input_queue_abs(input_receive_con, INPUT_AXIS_X, (int)(mouse_pos_record[replaying_key][key_repeat_cnt[replaying_key] * 2] / real_window_width * window_width), 0, window_width);
+                qemu_input_queue_abs(input_receive_con, INPUT_AXIS_Y, (int)(mouse_pos_record[replaying_key][key_repeat_cnt[replaying_key] * 2 + 1] / real_window_height * window_height), 0, window_height);
+                if (key_repeat_cnt[replaying_key] == 0)
+                {
+                    qemu_input_queue_btn(input_receive_con, INPUT_BUTTON_LEFT, true);
+                }
+                key_repeat_cnt[replaying_key]++;
+            }
+        }
+
+        if (now_press_key != 0 && mouse_click_record[now_press_key] == 1 & mouse_pos_record_num[now_press_key] < 50)
+        {
+            mouse_pos_record[now_press_key][mouse_pos_record_num[now_press_key] * 2] = now_mouse_xpos;
+            mouse_pos_record[now_press_key][mouse_pos_record_num[now_press_key] * 2 + 1] = now_mouse_ypos;
+            mouse_pos_record_num[now_press_key]++;
+        }
+
         qemu_input_event_sync();
 
-        ATOMIC_LOCK(compose_surface_lock);
-        if (compose_surface != NULL)
+        if (display_gbuffer != NULL)
         {
-            opengl_paint(compose_surface);
+            opengl_paint(display_gbuffer);
 
             if (sdl2_no_need == 0 && window_width != 0 && window_height != 0)
             {
                 sdl2_no_need = 1;
-                glfwSetWindowSize(glfw_window, window_width, window_height);
+                glfwSetWindowSize(glfw_window, window_width * 3 / 4, window_height * 3 / 4);
                 glfwShowWindow(glfw_window);
             }
-
-            ATOMIC_UNLOCK(compose_surface_lock);
 
             glfwSwapBuffers(glfw_window);
         }
@@ -1220,8 +1356,6 @@ void *native_window_thread(void *opaque)
                 real_window_height = window_height;
                 glfwHideWindow(glfw_window);
             }
-
-            ATOMIC_UNLOCK(compose_surface_lock);
 
             glfwSwapBuffers(glfw_window);
         }
@@ -1274,6 +1408,7 @@ void *native_window_thread(void *opaque)
 
     return NULL;
 }
+
 
 int draw_wait_GSYNC(void *event, int wait_frame_num)
 {
@@ -1336,260 +1471,32 @@ static void g_queue_event_notify(gpointer data, gpointer user_data)
     return;
 }
 
-void set_compose_surface(Window_Buffer *old_surface, Window_Buffer *new_surface)
+void set_display_gbuffer(Graphic_Buffer *gbuffer)
 {
-    if (old_surface != NULL)
-    {
-        if (compose_surface != old_surface)
-        {
-            return;
-        }
-    }
-    if (compose_surface == new_surface)
-    {
-        return;
-    }
-    ATOMIC_LOCK(compose_surface_lock);
-    compose_surface = new_surface;
-    ATOMIC_UNLOCK(compose_surface_lock);
-    express_printf("change compose surface %lx\n", compose_surface);
+    display_gbuffer = gbuffer;
 }
 
-GLuint acquire_texture_from_surface(Window_Buffer *surface)
+void add_gbuffer_to_global(Graphic_Buffer *global_gbuffer)
 {
-
-    int now_read = surface->now_read;
-
-    surface->temp_time = g_get_real_time();
-
-    if (surface->type == P_SURFACE)
-    {
-        return 0;
-    }
-
-    if (surface->now_acquired != -1)
-    {
-        ATOMIC_SET_UNUSED(surface->display_texture_is_use[surface->now_acquired]);
-    }
-
-    ATOMIC_SET_USED(surface->display_texture_is_use[now_read]);
-
-    glFlush();
-    if (surface->fbo_sync[now_read] != NULL)
-    {
-
-        glWaitSync(surface->fbo_sync[now_read], 0, GL_TIMEOUT_IGNORED);
-    }
-
-    GLuint texture = surface->fbo_texture[now_read];
-
-    surface->now_acquired = now_read;
-
-    return texture;
+    ATOMIC_LOCK(gbuffer_global_map_lock);
+    g_hash_table_insert(gbuffer_global_map, (gpointer)(global_gbuffer->gbuffer_id), (gpointer)global_gbuffer);
+    ATOMIC_UNLOCK(gbuffer_global_map_lock);
 }
 
-void release_texture_from_surface(Window_Buffer *surface)
+Graphic_Buffer *get_gbuffer_from_global_map(uint64_t gbuffer_id)
 {
+    ATOMIC_LOCK(gbuffer_global_map_lock);
+    Graphic_Buffer *gbuffer = (Graphic_Buffer *)g_hash_table_lookup(gbuffer_global_map, (gpointer)(gbuffer_id));
+    ATOMIC_UNLOCK(gbuffer_global_map_lock);
 
-    int now_read = surface->now_acquired;
-
-    if (surface->type == P_SURFACE)
-    {
-        return;
-    }
-    GLsync wait_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glFlush();
-
-    if (surface->fbo_sync[now_read] != NULL)
-    {
-        if (surface->delete_sync[surface->delete_loc] != 0)
-        {
-            glDeleteSync(surface->delete_sync[surface->delete_loc]);
-        }
-        surface->delete_sync[surface->delete_loc] = surface->fbo_sync[now_read];
-        surface->delete_loc = (surface->delete_loc + 1) % 5;
-    }
-    surface->fbo_sync[now_read] = wait_sync;
-
-    ATOMIC_SET_UNUSED(surface->display_texture_is_use[now_read]);
+    return gbuffer;
 }
 
-GLuint acquire_texture_from_image(EGL_Image *image)
+void remove_gbuffer_from_global_map(uint64_t gbuffer_id)
 {
-
-    if (image->is_lock == 1)
-    {
-        return 0;
-    }
-
-    ATOMIC_SET_USED(image->display_texture_is_use);
-
-    glFlush();
-    image->is_lock = 1;
-    if (image->fbo_sync != NULL)
-    {
-
-        glWaitSync(image->fbo_sync, 0, GL_TIMEOUT_IGNORED);
-        if (image->fbo_sync_need_delete != NULL)
-        {
-            glDeleteSync(image->fbo_sync_need_delete);
-        }
-        image->fbo_sync_need_delete = image->fbo_sync;
-    }
-    image->fbo_sync = NULL;
-
-    GLuint texture = image->fbo_texture;
-
-    return texture;
-}
-
-void init_image_texture(EGL_Image *image)
-{
-    if (image->fbo_texture == 0 && image->target != EGL_GL_TEXTURE_2D)
-    {
-
-        GLuint pre_vbo;
-
-        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLuint *)&pre_vbo);
-
-        glGenTextures(1, &(image->fbo_texture));
-
-        glBindTexture(GL_TEXTURE_2D, image->fbo_texture);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, image->internal_format, image->width, image->height, 0, image->format, image->pixel_type, NULL);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        glBindBuffer(GL_ARRAY_BUFFER, pre_vbo);
-    }
-}
-
-void init_image_fbo(EGL_Image *image, int need_reverse)
-{
-    if (image->display_fbo == 0)
-    {
-        glGenFramebuffers(1, &(image->display_fbo));
-        glBindFramebuffer(GL_FRAMEBUFFER, image->display_fbo);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, image->fbo_texture, 0);
-
-        if (need_reverse)
-        {
-            image->fbo_texture_reverse = image->fbo_texture;
-            image->display_fbo_reverse = image->display_fbo;
-            image->fbo_texture = 0;
-            init_image_texture(image);
-
-            glGenFramebuffers(1, &(image->display_fbo));
-            glBindFramebuffer(GL_FRAMEBUFFER, image->display_fbo);
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, image->fbo_texture, 0);
-        }
-    }
-}
-
-void release_texture_from_image(EGL_Image *image)
-{
-
-    if (image->is_lock == 0)
-    {
-        return;
-    }
-
-    if (image->need_reverse == 1)
-    {
-        image->need_reverse = 0;
-
-        glBlitNamedFramebuffer(image->display_fbo, image->display_fbo_reverse, 0, 0, image->width, image->height, 0, image->height, image->width, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        GLuint temp_id;
-
-        temp_id = image->display_fbo;
-        image->display_fbo = image->display_fbo_reverse;
-        image->display_fbo_reverse = temp_id;
-
-        temp_id = image->fbo_texture;
-        image->fbo_texture = image->fbo_texture_reverse;
-        image->fbo_texture_reverse = temp_id;
-
-        glBindTexture(GL_TEXTURE_2D, image->fbo_texture);
-        glBindFramebuffer(GL_FRAMEBUFFER, image->display_fbo);
-    }
-
-    GLsync wait_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glFlush();
-    image->is_lock = 0;
-
-    if (image->fbo_sync != NULL)
-    {
-        if (image->fbo_sync_need_delete != NULL)
-        {
-            glDeleteSync(image->fbo_sync_need_delete);
-        }
-        image->fbo_sync_need_delete = image->fbo_sync;
-    }
-    image->fbo_sync = wait_sync;
-
-    ATOMIC_SET_UNUSED(image->display_texture_is_use);
-}
-
-Window_Buffer *get_surface_from_gbuffer_id(uint64_t gbuffer_id)
-{
-    if (gbuffer_id_surface_map == NULL)
-    {
-        return NULL;
-    }
-    Window_Buffer *real_surface = (Window_Buffer *)g_hash_table_lookup(gbuffer_id_surface_map, (gpointer)(gbuffer_id));
-    return real_surface;
-}
-
-void set_surface_gbuffer_id(Window_Buffer *surface, uint64_t gbuffer_id)
-{
-    if (gbuffer_id_surface_map == NULL)
-    {
-        return;
-    }
-    if (surface == NULL)
-    {
-        g_hash_table_remove(gbuffer_id_surface_map, (gpointer)(gbuffer_id));
-    }
-    else
-    {
-        g_hash_table_insert(gbuffer_id_surface_map, (gpointer)(gbuffer_id), (gpointer)surface);
-    }
-    return;
-}
-
-EGL_Image *get_image_from_gbuffer_id(uint64_t gbuffer_id)
-{
-    if (gbuffer_id_image_map == NULL)
-    {
-        return NULL;
-    }
-    EGL_Image *real_image = (EGL_Image *)g_hash_table_lookup(gbuffer_id_image_map, (gpointer)(gbuffer_id));
-    return real_image;
-}
-
-void set_image_gbuffer_id(EGL_Image *origin_image, EGL_Image *now_image, uint64_t gbuffer_id)
-{
-    if (gbuffer_id_image_map == NULL)
-    {
-        return;
-    }
-    if (now_image == NULL)
-    {
-        EGL_Image *real_image = (EGL_Image *)g_hash_table_lookup(gbuffer_id_image_map, (gpointer)(gbuffer_id));
-        if (real_image == origin_image)
-        {
-            g_hash_table_remove(gbuffer_id_image_map, (gpointer)(gbuffer_id));
-        }
-    }
-    else
-    {
-        g_hash_table_insert(gbuffer_id_image_map, (gpointer)(gbuffer_id), (gpointer)now_image);
-    }
-    return;
+    ATOMIC_LOCK(gbuffer_global_map_lock);
+    g_hash_table_remove(gbuffer_global_map, (gpointer)(gbuffer_id));
+    ATOMIC_UNLOCK(gbuffer_global_map_lock);
 }
 
 void send_message_to_main_window(int message_code, void *data)

@@ -1,7 +1,8 @@
+
 /**
  * @file offscreen_render_thread.c
  * @author Di Gao
- * @brief Testing translation
+ * @brief Testing data transfer
  * @version 0.1
  * @date 2020-12-31
  * 

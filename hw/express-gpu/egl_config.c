@@ -1,12 +1,13 @@
+
 /**
  * @file egl_config.c
  * @author Hao Lin
  * @brief Basic utilities for handling EGL config-related operations.
  * @version 0.1
  * @date 2021-07-14
- * 
+ *
  * @copyright Copyright (c) 2021
- * 
+ *
  */
 #include "express-gpu/egl_display.h"
 #include "express-gpu/egl_config.h"
@@ -110,7 +111,7 @@ EGLBoolean is_config_equaled(eglConfig *config, eglConfig *other)
 
 eglConfig *config_to_hints(EGLConfig cfg, GLFWHints *hints)
 {
-    eglConfig *config = (eglConfig *)g_hash_table_lookup(default_egl_display->egl_config_set, GINT_TO_POINTER(cfg));
+    eglConfig *config = (eglConfig *)g_hash_table_lookup(default_egl_display->egl_config_set, GUINT_TO_POINTER(cfg));
 
     for (int i = 0; i < NUM_HINTS; i++)
     {

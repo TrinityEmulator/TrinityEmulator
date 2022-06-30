@@ -1,3 +1,4 @@
+
 /**
  * @file egl_sync.c
  * @author Di Gao
@@ -44,7 +45,11 @@ EGLBoolean d_eglGetSyncAttrib(void *context, EGLDisplay dpy, EGLSync sync, EGLin
     if (host_sync == NULL || attribute != EGL_SYNC_STATUS)
     {
         printf("error! egGetSyncAttrib guest sync %d host sync %lld, opengl_context %llx, attribute %x\n", guest_sync_int, (uint64_t)host_sync, (uint64_t)thread_context->opengl_context, attribute);
-        return EGL_FALSE;
+        if (attribute == EGL_SYNC_STATUS)
+        {
+            *value = EGL_UNSIGNALED;
+        }
+        return EGL_TRUE;
     }
 
     if (thread_context->opengl_context == NULL)

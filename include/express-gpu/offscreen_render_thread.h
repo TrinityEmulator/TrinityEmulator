@@ -11,9 +11,7 @@ typedef struct Process_Context
     GHashTable *surface_map;
     GHashTable *context_map;
 
-    GHashTable *native_window_surface_map;
-
-    GHashTable *gbuffer_image_map;
+    GHashTable *gbuffer_map;
 
     Resource_Map_Status *egl_sync_resource;
 
