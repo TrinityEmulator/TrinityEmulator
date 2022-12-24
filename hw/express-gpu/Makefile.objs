@@ -9,6 +9,8 @@ common-obj-$(CONFIG_EXPRESS_GPU) += glv3_mem.o
 common-obj-$(CONFIG_EXPRESS_GPU) += glv3_texture.o
 common-obj-$(CONFIG_EXPRESS_GPU) += glv3_vertex.o
 common-obj-$(CONFIG_EXPRESS_GPU) += glv3_resource.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_program.o
+common-obj-$(CONFIG_EXPRESS_GPU) += glv3_status.o
 
 
 

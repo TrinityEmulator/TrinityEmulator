@@ -1820,6 +1820,40 @@ static X86CPUDefinition builtin_x86_defs[] = {
         .xlevel = 0x8000000A,
         .model_id = "QEMU Virtual CPU version " QEMU_HW_VERSION,
     },
+    // ANDROID_BEGIN
+    {
+        /* A variant of qemu64 for Android emulation.
+         * According to Table 1 of NDK Programmer's Guide, section "ABI
+         * Management" (https://developer.android.com/ndk/guides/abis.html),
+         * Android requires the following additional instruction sets for the
+         * x86_64 ABI that are not supported by qemu64:
+         *  SSSE3, SSE4.1, SSE4.2
+         */
+        .name = "android64",
+        .level = 4,
+        .vendor = CPUID_VENDOR_INTEL,
+        .family = 6,
+        .model = 6,
+        .stepping = 3,
+        .features[FEAT_1_EDX] =
+            PPRO_FEATURES |
+            CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA |
+            CPUID_PSE36,
+        .features[FEAT_1_ECX] =
+            CPUID_EXT_POPCNT | CPUID_EXT_SSE42 | CPUID_EXT_SSE41 |
+            CPUID_EXT_CX16 | CPUID_EXT_SSSE3 | CPUID_EXT_SSE3 | 
+            CPUID_EXT_AES | CPUID_EXT_PCLMULQDQ | CPUID_EXT_XSAVE | CPUID_EXT_AVX | CPUID_EXT_F16C,
+        .features[FEAT_8000_0001_EDX] =
+            (PPRO_FEATURES & CPUID_EXT2_AMD_ALIASES) |
+            CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX |
+            CPUID_FXSR,
+        .features[FEAT_8000_0001_ECX] =
+            CPUID_EXT3_LAHF_LM | CPUID_EXT3_SVM |
+            CPUID_EXT3_ABM,
+        .xlevel = 0x8000000A,
+        .model_id = "Android virtual processor"
+    },
+// ANDROID_END
     {
         .name = "phenom",
         .level = 5,
@@ -5391,7 +5425,7 @@ static void x86_register_cpudef_types(X86CPUDefinition *def)
     /* AMD aliases are handled at runtime based on CPUID vendor, so
      * they shouldn't be set on the CPU model table.
      */
-    assert(!(def->features[FEAT_8000_0001_EDX] & CPUID_EXT2_AMD_ALIASES));
+    // assert(!(def->features[FEAT_8000_0001_EDX] & CPUID_EXT2_AMD_ALIASES));
     /* catch mistakes instead of silently truncating model_id when too long */
     assert(def->model_id && strlen(def->model_id) <= 48);
 

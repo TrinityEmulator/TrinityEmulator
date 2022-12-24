@@ -1,4 +1,3 @@
-
 /**
  * @file egl_context.c
  * @author Di Gao
@@ -9,6 +8,7 @@
  * @copyright Copyright (c) 2021
  *
  */
+
 #include "express-gpu/egl_context.h"
 #include "express-gpu/glv3_context.h"
 

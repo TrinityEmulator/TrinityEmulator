@@ -5,12 +5,6 @@
 #include "express-gpu/glv3_context.h"
 #include "express-gpu/gl_helper.h"
 
-void gl_pixel_data_loc(void *store_status, GLsizei width, GLsizei height, GLenum format, GLenum type, int pack, int *start_loc, int *end_loc);
-
-void gl_pixel_data_3d_loc(void *store_status, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, int pack, int *start_loc, int *end_loc);
-
-void d_glPixelStorei_origin(void *context, GLenum pname, GLint param);
-
 void d_glTexImage2D_without_bound(void *context, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, GLint buf_len, const void *pixels);
 void d_glTexImage2D_with_bound(void *context, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, GLintptr pixels);
 
@@ -44,8 +38,6 @@ void d_glGraphicBufferData(void *context, EGLContext ctx, uint64_t g_buffer_id, 
 
 void d_glReadGraphicBuffer(void *context, EGLContext ctx, uint64_t g_buffer_id, int width, int height, int buf_len, int row_byte_len, int stride, void *real_buffer);
 
-void d_glBindTexture_special(void *context, GLenum target, GLuint texture);
-
-void d_glActiveTexture_special(void *context, GLenum texture);
+void d_glFramebufferTexture2D_special(void *context, GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 
 #endif

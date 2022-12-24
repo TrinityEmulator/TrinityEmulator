@@ -1,13 +1,12 @@
-
 /**
  * @file direct_express_pci.c
  * @author Di Gao
  * @brief Virtual PCI device implementation for guest-host data transfering
  * @version 0.1
  * @date 2020-9-22
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #include "direct-express/direct_express_pci.h"

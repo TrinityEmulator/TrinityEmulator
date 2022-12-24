@@ -1,5 +1,12 @@
 #include "express-gpu/gl_helper.h"
 
+/**
+ * @brief 根据像素格式和类型计算一个像素所占的空间的字节大小
+ * 
+ * @param format 像素格式
+ * @param type 像素类型
+ * @return int 
+ */
 int pixel_size_calc(GLenum format, GLenum type)
 {
     switch (type)
@@ -76,7 +83,7 @@ int pixel_size_calc(GLenum format, GLenum type)
         case GL_RGBA_INTEGER:
             return sizeof(unsigned char) * 4;
         case GL_BGRA_EXT:
-
+            //case GL_BGRA8_EXT:
             return sizeof(unsigned char) * 4;
         }
         break;
@@ -139,7 +146,7 @@ int pixel_size_calc(GLenum format, GLenum type)
         {
         case GL_DEPTH_COMPONENT16:
         case GL_DEPTH_COMPONENT24:
-
+        // case GL_DEPTH_COMPONENT32_OES:
         case GL_DEPTH_COMPONENT:
             return sizeof(unsigned int);
         case GL_R32UI:
@@ -159,12 +166,13 @@ int pixel_size_calc(GLenum format, GLenum type)
     case GL_UNSIGNED_SHORT_4_4_4_4:
     case GL_UNSIGNED_SHORT_5_5_5_1:
     case GL_UNSIGNED_SHORT_5_6_5:
-
+        // case GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT:
+        // case GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT:
         return sizeof(unsigned short);
     case GL_UNSIGNED_INT_10F_11F_11F_REV:
     case GL_UNSIGNED_INT_5_9_9_9_REV:
     case GL_UNSIGNED_INT_2_10_10_10_REV:
-
+        // case GL_UNSIGNED_INT_24_8_OES:
         return sizeof(unsigned int);
     case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
         return sizeof(float) + sizeof(unsigned int);
@@ -174,13 +182,13 @@ int pixel_size_calc(GLenum format, GLenum type)
         case GL_DEPTH_COMPONENT32F:
         case GL_DEPTH_COMPONENT:
             return sizeof(float);
-
+        // case GL_ALPHA32F_EXT:
         case GL_ALPHA:
             return sizeof(float);
-
+        // case GL_LUMINANCE32F_EXT:
         case GL_LUMINANCE:
             return sizeof(float);
-
+        // case GL_LUMINANCE_ALPHA32F_EXT:
         case GL_LUMINANCE_ALPHA:
             return sizeof(float) * 2;
         case GL_RED:
@@ -202,16 +210,16 @@ int pixel_size_calc(GLenum format, GLenum type)
         }
         break;
     case GL_HALF_FLOAT:
-
+        // case GL_HALF_FLOAT_OES:
         switch (format)
         {
-
+        // case GL_ALPHA16F_EXT:
         case GL_ALPHA:
             return sizeof(unsigned short);
-
+        // case GL_LUMINANCE16F_EXT:
         case GL_LUMINANCE:
             return sizeof(unsigned short);
-
+        // case GL_LUMINANCE_ALPHA16F_EXT:
         case GL_LUMINANCE_ALPHA:
             return sizeof(unsigned short) * 2;
         case GL_RED:
@@ -237,6 +245,12 @@ int pixel_size_calc(GLenum format, GLenum type)
     return 0;
 }
 
+/**
+ * @brief opengl各种类型数据的sizeof函数
+ * 
+ * @param type 
+ * @return size_t 
+ */
 size_t gl_sizeof(GLenum type)
 {
     size_t retval = 0;
@@ -249,7 +263,7 @@ size_t gl_sizeof(GLenum type)
     case GL_SHORT:
     case GL_UNSIGNED_SHORT:
     case GL_HALF_FLOAT:
-
+        // case GL_HALF_FLOAT_OES:
         retval = 2;
         break;
     case GL_IMAGE_2D:
@@ -367,14 +381,15 @@ size_t gl_sizeof(GLenum type)
     case GL_UNSIGNED_SHORT_4_4_4_4:
     case GL_UNSIGNED_SHORT_5_5_5_1:
     case GL_UNSIGNED_SHORT_5_6_5:
-
+        // case GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT:
+        // case GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT:
         retval = 2;
         break;
     case GL_INT_2_10_10_10_REV:
     case GL_UNSIGNED_INT_10F_11F_11F_REV:
     case GL_UNSIGNED_INT_5_9_9_9_REV:
     case GL_UNSIGNED_INT_2_10_10_10_REV:
-
+        // case GL_UNSIGNED_INT_24_8_OES:
         retval = 4;
         break;
     case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
@@ -405,9 +420,9 @@ size_t gl_pname_size(GLenum pname)
     case GL_MAX_TEXTURE_STACK_DEPTH:
     case GL_IMPLEMENTATION_COLOR_READ_FORMAT_OES:
     case GL_IMPLEMENTATION_COLOR_READ_TYPE_OES:
-
+    // case GL_NUM_COMPRESSED_TEXTURE_FORMATS:
     case GL_MAX_TEXTURE_SIZE:
-
+    // case GL_TEXTURE_GEN_MODE_OES:
     case GL_TEXTURE_ENV_MODE:
     case GL_FOG_MODE:
     case GL_FOG_DENSITY:
@@ -468,10 +483,13 @@ size_t gl_pname_size(GLenum pname)
     case GL_COLOR_MATERIAL:
     case GL_PACK_ALIGNMENT:
     case GL_PERSPECTIVE_CORRECTION_HINT:
-
+    // case GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES:
+    // case GL_POINT_SIZE_ARRAY_STRIDE_OES:
+    // case GL_POINT_SIZE_ARRAY_TYPE_OES:
     case GL_POINT_SMOOTH:
     case GL_POINT_SMOOTH_HINT:
-
+    // case GL_POINT_SPRITE_OES:
+    // case GL_COORD_REPLACE_OES:
     case GL_COMBINE_ALPHA:
     case GL_SRC0_RGB:
     case GL_SRC1_RGB:
@@ -517,7 +535,7 @@ size_t gl_pname_size(GLenum pname)
     case GL_TEXTURE_BASE_LEVEL:
     case GL_TEXTURE_BINDING_2D:
     case GL_TEXTURE_BINDING_CUBE_MAP:
-
+    // case GL_TEXTURE_BINDING_EXTERNAL_OES:
     case GL_TEXTURE_COMPARE_FUNC:
     case GL_TEXTURE_COMPARE_MODE:
     case GL_TEXTURE_COORD_ARRAY:
@@ -546,13 +564,39 @@ size_t gl_pname_size(GLenum pname)
     case GL_TEXTURE_SWIZZLE_A:
     case GL_GENERATE_MIPMAP:
     case GL_GENERATE_MIPMAP_HINT:
-
+    // case GL_RENDERBUFFER_WIDTH_OES:
+    // case GL_RENDERBUFFER_HEIGHT_OES:
+    // case GL_RENDERBUFFER_INTERNAL_FORMAT_OES:
+    // case GL_RENDERBUFFER_RED_SIZE_OES:
+    // case GL_RENDERBUFFER_GREEN_SIZE_OES:
+    // case GL_RENDERBUFFER_BLUE_SIZE_OES:
+    // case GL_RENDERBUFFER_ALPHA_SIZE_OES:
+    // case GL_RENDERBUFFER_DEPTH_SIZE_OES:
+    // case GL_RENDERBUFFER_STENCIL_SIZE_OES:
     case GL_RENDERBUFFER_BINDING:
     case GL_FRAMEBUFFER_BINDING:
-
+    // case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE_OES:
+    // case GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME_OES:
+    // case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL_OES:
+    // case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE_OES:
     case GL_FENCE_STATUS_NV:
     case GL_FENCE_CONDITION_NV:
-
+    // case GL_TEXTURE_WIDTH_QCOM:
+    // case GL_TEXTURE_HEIGHT_QCOM:
+    // case GL_TEXTURE_DEPTH_QCOM:
+    // case GL_TEXTURE_INTERNAL_FORMAT_QCOM:
+    // case GL_TEXTURE_FORMAT_QCOM:
+    // case GL_TEXTURE_TYPE_QCOM:
+    // case GL_TEXTURE_IMAGE_VALID_QCOM:
+    // case GL_TEXTURE_NUM_LEVELS_QCOM:
+    // case GL_TEXTURE_TARGET_QCOM:
+    // case GL_TEXTURE_OBJECT_VALID_QCOM:
+    // case GL_BLEND_EQUATION_RGB_OES:
+    // case GL_BLEND_EQUATION_ALPHA_OES:
+    // case GL_BLEND_DST_RGB_OES:
+    // case GL_BLEND_SRC_RGB_OES:
+    // case GL_BLEND_DST_ALPHA_OES:
+    // case GL_BLEND_SRC_ALPHA_OES:
     case GL_MAX_LIGHTS:
     case GL_SHADER_TYPE:
     case GL_COMPILE_STATUS:
@@ -562,7 +606,7 @@ size_t gl_pname_size(GLenum pname)
     case GL_MAX_3D_TEXTURE_SIZE:
     case GL_MAX_ARRAY_TEXTURE_LAYERS:
     case GL_MAX_CUBE_MAP_TEXTURE_SIZE:
-
+    // case GL_NUM_SHADER_BINARY_FORMATS:
     case GL_SHADER_COMPILER:
     case GL_MAX_VERTEX_ATTRIBS:
     case GL_MAX_VERTEX_UNIFORM_VECTORS:
@@ -572,7 +616,8 @@ size_t gl_pname_size(GLenum pname)
     case GL_MAX_FRAGMENT_UNIFORM_VECTORS:
     case GL_MAX_RENDERBUFFER_SIZE:
     case GL_MAX_TEXTURE_IMAGE_UNITS:
-
+    // case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
+    // case GL_FRAGMENT_SHADER_DERIVATIVE_HINT_OES:
     case GL_LINE_WIDTH:
     case GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS:
     case GL_MAX_UNIFORM_BUFFER_BINDINGS:
@@ -589,6 +634,8 @@ size_t gl_pname_size(GLenum pname)
     case GL_QUERY_RESULT:
     case GL_QUERY_RESULT_AVAILABLE:
     case GL_READ_BUFFER:
+        // case GL_NUM_PROGRAM_BINARY_FORMATS:
+        // case GL_PROGRAM_BINARY_FORMATS:
 
     case GL_ACTIVE_ATOMIC_COUNTER_BUFFERS:
     case GL_ACTIVE_ATTRIBUTES:
@@ -644,7 +691,7 @@ size_t gl_pname_size(GLenum pname)
     case GL_TEXTURE_ENV_COLOR:
     case GL_SCISSOR_BOX:
     case GL_VIEWPORT:
-
+    // case GL_TEXTURE_CROP_RECT_OES:
     case GL_COLOR_CLEAR_VALUE:
     case GL_COLOR_WRITEMASK:
     case GL_AMBIENT_AND_DIFFUSE:
@@ -656,7 +703,9 @@ size_t gl_pname_size(GLenum pname)
     case GL_TEXTURE_MATRIX:
         s = 16;
         break;
-
+    // case GL_COMPRESSED_TEXTURE_FORMATS:
+    //     s = 16;
+    //     break;
     case GL_MAX_ELEMENTS_VERTICES:
     case GL_MAX_VERTEX_UNIFORM_COMPONENTS:
     case GL_MAX_VERTEX_UNIFORM_BLOCKS:
@@ -741,14 +790,15 @@ size_t gl_pname_size(GLenum pname)
         break;
     default:
         printf("gl_pname_size: unknow pname 0x%08x\n", pname);
-        s = 1;
+        s = 1; // assume 1
     }
     return s;
 }
 
+
 Dying_List *dying_list_append(Dying_List *list, void *data)
 {
-    if (list == NULL)
+    if(list == NULL)
     {
         list = (Dying_List *)g_malloc(sizeof(Dying_List));
         list->header = NULL;
@@ -758,7 +808,7 @@ Dying_List *dying_list_append(Dying_List *list, void *data)
     Dying_List_Node *node = g_malloc(sizeof(Dying_List_Node));
     node->data = data;
     node->next = NULL;
-    if (list->tail == NULL)
+    if(list->tail == NULL)
     {
         list->tail = node;
         list->header = node;
@@ -774,17 +824,17 @@ Dying_List *dying_list_append(Dying_List *list, void *data)
     return list;
 }
 
-Dying_List *dying_list_foreach(Dying_List *list, Dying_Function fun)
+Dying_List *dying_list_remove(Dying_List *list, void *data)
 {
-    if (list == NULL)
+    if(list == NULL)
     {
         return list;
     }
-    for (Dying_List_Node *node = list->header; node->next != NULL;)
+    for(Dying_List_Node *node = list->header; node!=NULL;)
     {
-        if (fun(node->data) == 1)
+        if(node->data == data)
         {
-            if (node->prev == NULL)
+            if(node->prev == NULL)
             {
                 list->header = node->next;
             }
@@ -792,7 +842,48 @@ Dying_List *dying_list_foreach(Dying_List *list, Dying_Function fun)
             {
                 node->prev->next = node->next;
             }
-            if (node->next == NULL)
+            if(node->next == NULL)
+            {
+                list->tail = node->prev;
+            }
+            else
+            {
+                node->next->prev = node->prev;
+            }
+            Dying_List_Node *node_next = node->next;
+            g_free(node);
+            node = node_next;
+            list->num--;
+            return list;
+        }
+        else
+        {
+            node = node->next;
+        }
+    }
+    return list;
+
+}
+
+Dying_List *dying_list_foreach(Dying_List *list, Dying_Function fun)
+{
+    if(list == NULL)
+    {
+        return list;
+    }
+    for(Dying_List_Node *node = list->header; node != NULL;)
+    {
+        if(fun(node->data)==1)
+        {
+            if(node->prev == NULL)
+            {
+                list->header = node->next;
+            }
+            else
+            {
+                node->prev->next = node->next;
+            }
+            if(node->next == NULL)
             {
                 list->tail = node->prev;
             }
@@ -813,6 +904,7 @@ Dying_List *dying_list_foreach(Dying_List *list, Dying_Function fun)
     return list;
 }
 
+
 void glTestIntAsyn(GLint a, GLuint b, GLfloat c, GLdouble d)
 {
     printf("glTestInt asyn %d,%u,%f,%lf\n", a, b, c, d);
@@ -829,7 +921,7 @@ void glPrintfAsyn(GLint a, GLuint size, GLdouble c, const GLchar *out_string)
 GLint glTestInt1(GLint a, GLuint b)
 {
     express_printf("glTestInt1 %d,%u\n", a, b);
-
+    //fflush(stdout);
     return 576634565;
 }
 GLuint glTestInt2(GLint a, GLuint b)
@@ -936,7 +1028,8 @@ void glTestString(GLint a, GLint count, const GLchar *const *strings, GLint buf_
 
 void d_glPrintf(void *context, GLint buf_len, const GLchar *out_string)
 {
-
+    // char *t="temp test abcd";
+    // memcpy(out_string,t,strlen(t));
     char *temp = g_malloc(buf_len);
     guest_write((Guest_Mem *)out_string, temp, 0, buf_len);
 
@@ -964,10 +1057,25 @@ void d_glPrintf(void *context, GLint buf_len, const GLchar *out_string)
         }
     }
     g_free(temp);
+    // fflush(stdout);
+    // int flag=0;
 
     return;
 }
 
+// glInOutTest GLint a, GLint b, const GLchar *e#strlen(e), GLint *c#sizeof(GLint), GLdouble *d#sizeof(GLdouble), GLsizei buf_len, GLchar *f#buf_len
+
+// glSaveLongTime GLuint a, GLdouble b, const void *pointer#a
+
 void d_glInOutTest(void *context, GLint a, GLint b, const GLchar *e, GLint *c, GLdouble *d, GLsizei buf_len, GLchar *f)
 {
+    // printf("glInOutTest %d,%d   buf_len%llu\n",a,b,buf_len);
+    // *c=78646313;
+    // *d=3.141592653543;
+
+    // char *temp;
+
+    // char *t="glInOutTest printf ok! test ok!";
+    // memcpy(f,t,strlen(t));
+    // fflush(stdout);
 }

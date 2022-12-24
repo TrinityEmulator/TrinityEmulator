@@ -7,8 +7,6 @@
 void d_glBufferData_custom(void *context, GLenum target, GLsizeiptr size, const void *data, GLenum usage);
 void d_glBufferSubData_custom(void *context, GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
 
-void d_glDeleteBuffers_origin(void *context, GLsizei n, const GLuint *buffers);
-
 void d_glMapBufferRange_read(void *context, GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access, void *mem_buf);
 void d_glMapBufferRange_write(void *context, GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
 GLboolean d_glUnmapBuffer_special(void *context, GLenum target);

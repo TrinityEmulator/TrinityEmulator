@@ -1,4 +1,3 @@
-
 /**
  * @file egl_config.c
  * @author Hao Lin

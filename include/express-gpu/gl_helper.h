@@ -32,6 +32,8 @@ Dying_List *dying_list_append(Dying_List *list, void *data);
 
 Dying_List *dying_list_foreach(Dying_List *list, Dying_Function fun);
 
+Dying_List *dying_list_remove(Dying_List *list, void *data);
+
 void glTestIntAsyn(GLint a, GLuint b, GLfloat c, GLdouble d);
 
 void glPrintfAsyn(GLint a, GLuint size, GLdouble c, const GLchar *out_string);

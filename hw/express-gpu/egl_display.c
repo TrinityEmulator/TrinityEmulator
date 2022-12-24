@@ -4,9 +4,9 @@
  * @brief Basic utilities for handling display-related operations
  * @version 0.1
  * @date 2021-08-13
- * 
+ *
  * @copyright Copyright (c) 2021
- * 
+ *
  */
 #include "express-gpu/egl_display.h"
 
@@ -26,6 +26,7 @@ EGLBoolean add_config(Egl_Display *display, eglConfig *config)
         return EGL_FALSE;
     }
 }
+
 
 void add_window_independent_config(Egl_Display *display, EGLint attr_enum, EGLint *vals, EGLint val_size)
 {

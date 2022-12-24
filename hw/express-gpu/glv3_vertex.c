@@ -1,4 +1,3 @@
-
 /**
  * @file glv3_context.c
  * @author Di Gao
@@ -9,100 +8,237 @@
  * @copyright Copyright (c) 2021
  *
  */
+
 #include "express-gpu/glv3_vertex.h"
+#include "express-gpu/glv3_status.h"
+
 
 GLint set_vertex_attrib_data(void *context, GLuint index, GLuint offset, GLuint length, const void *pointer)
 {
     Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
-
+    
     Attrib_Point *point_data = bound_buffer->attrib_point;
 
     GLuint max_len = offset + length;
 
     unsigned char *map_pointer = NULL;
-
-    glBindBuffer(GL_ARRAY_BUFFER, point_data->buffer_object[index]);
-
-    if (max_len > point_data->buffer_len[index])
+    
+    
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
+        
 
-        int alloc_size = max_len * BUFFER_MULTIPLY_FACTOR;
-        if (alloc_size < 1024)
+        if (max_len > point_data->buffer_len[index])
         {
-            alloc_size = 1024;
+            
+
+            int alloc_size =  max_len * BUFFER_MULTIPLY_FACTOR;
+            if(alloc_size < 1024)
+            {
+                alloc_size = 1024;
+            }
+
+            
+            glNamedBufferData(point_data->buffer_object[index], alloc_size, NULL, GL_STREAM_DRAW);
+            point_data->buffer_len[index] = alloc_size;
+            map_pointer = glMapNamedBufferRange(point_data->buffer_object[index], offset, length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+            glFlushMappedNamedBufferRange(point_data->buffer_object[index], 0, length);
+
+            point_data->buffer_loc[index] = 0;
+            point_data->remain_buffer_len[index] = max_len * 2 - max_len;
+        }
+        else if (length > point_data->remain_buffer_len[index])
+        {
+            map_pointer = glMapNamedBufferRange(point_data->buffer_object[index], 0, point_data->buffer_len[index],
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+            
+            guest_write((Guest_Mem *)pointer, map_pointer + offset, 0, length);
+
+            glFlushMappedNamedBufferRange(point_data->buffer_object[index], offset, length);
+
+            point_data->buffer_loc[index] = 0;
+            point_data->remain_buffer_len[index] = point_data->buffer_len[index] - max_len;
+
+            
+            
+            
+
+            
+            
+
+            
+            
+        }
+        else
+        {
+            map_pointer = glMapNamedBufferRange(point_data->buffer_object[index],
+                                        point_data->buffer_len[index] - point_data->remain_buffer_len[index], length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+
+            glFlushMappedNamedBufferRange(point_data->buffer_object[index], 0, length);
+
+            point_data->buffer_loc[index] = point_data->buffer_len[index] - point_data->remain_buffer_len[index] - offset;
+            point_data->remain_buffer_len[index] -= length;
         }
 
-        glBufferData(GL_ARRAY_BUFFER, alloc_size, NULL, GL_STREAM_DRAW);
-        point_data->buffer_len[index] = alloc_size;
-        map_pointer = glMapBufferRange(GL_ARRAY_BUFFER, offset, length,
-                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+        express_printf("attrib point object %d loc %d %d index %d offset %d len %d\n", point_data->buffer_object[index], point_data->buffer_loc[index], point_data->buffer_loc[index] + length,index, offset, length);
 
-        guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
-        glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
-
-        point_data->buffer_loc[index] = 0;
-        point_data->remain_buffer_len[index] = max_len * 2 - max_len;
-    }
-    else if (length > point_data->remain_buffer_len[index])
-    {
-        map_pointer = glMapBufferRange(GL_ARRAY_BUFFER, 0, point_data->buffer_len[index],
-                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-
-        guest_write((Guest_Mem *)pointer, map_pointer + offset, 0, length);
-
-        glFlushMappedBufferRange(GL_ARRAY_BUFFER, offset, length);
-
-        point_data->buffer_loc[index] = 0;
-        point_data->remain_buffer_len[index] = point_data->buffer_len[index] - max_len;
+        glUnmapNamedBuffer(point_data->buffer_object[index]);
     }
     else
     {
-        map_pointer = glMapBufferRange(GL_ARRAY_BUFFER,
-                                       point_data->buffer_len[index] - point_data->remain_buffer_len[index], length,
-                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
-        guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+        glBindBuffer(GL_ARRAY_BUFFER, point_data->buffer_object[index]);
 
-        glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
+        
 
-        point_data->buffer_loc[index] = point_data->buffer_len[index] - point_data->remain_buffer_len[index] - offset;
-        point_data->remain_buffer_len[index] -= length;
+        if (max_len > point_data->buffer_len[index])
+        {
+            
+
+            int alloc_size =  max_len * BUFFER_MULTIPLY_FACTOR;
+            if(alloc_size < 1024)
+            {
+                alloc_size = 1024;
+            }
+
+            
+            glBufferData(GL_ARRAY_BUFFER, alloc_size, NULL, GL_STREAM_DRAW);
+            point_data->buffer_len[index] = alloc_size;
+            map_pointer = glMapBufferRange(GL_ARRAY_BUFFER, offset, length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+            glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
+
+            point_data->buffer_loc[index] = 0;
+            point_data->remain_buffer_len[index] = max_len * 2 - max_len;
+        }
+        else if (length > point_data->remain_buffer_len[index])
+        {
+            map_pointer = glMapBufferRange(GL_ARRAY_BUFFER, 0, point_data->buffer_len[index],
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+            
+            guest_write((Guest_Mem *)pointer, map_pointer + offset, 0, length);
+
+            glFlushMappedBufferRange(GL_ARRAY_BUFFER, offset, length);
+
+            point_data->buffer_loc[index] = 0;
+            point_data->remain_buffer_len[index] = point_data->buffer_len[index] - max_len;
+
+            
+            
+            
+
+            
+            
+
+            
+            
+        }
+        else
+        {
+            map_pointer = glMapBufferRange(GL_ARRAY_BUFFER,
+                                        point_data->buffer_len[index] - point_data->remain_buffer_len[index], length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+
+            glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, length);
+
+            point_data->buffer_loc[index] = point_data->buffer_len[index] - point_data->remain_buffer_len[index] - offset;
+            point_data->remain_buffer_len[index] -= length;
+        }
+
+        express_printf("attrib point loc %d %d index %d offset %d len %d\n", point_data->buffer_loc[index], point_data->buffer_loc[index] + length,index, offset, length);
+
+        glUnmapBuffer(GL_ARRAY_BUFFER);
     }
 
-    express_printf("attrib point loc %d %d index %d offset %d len %d\n", point_data->buffer_loc[index], point_data->buffer_loc[index] + length, index, offset, length);
 
-    glUnmapBuffer(GL_ARRAY_BUFFER);
 
     return point_data->buffer_loc[index];
 }
 
 void d_glVertexAttribPointer_without_bound(void *context, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLuint offset, GLuint length, const void *pointer)
 {
-    GLint vbo;
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+    Opengl_Context *opengl_context = (Opengl_Context *)context;
+    Bound_Buffer *bound_buffer = &(opengl_context->bound_buffer_status);
+    Buffer_Status *status = &(bound_buffer->buffer_status);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
+        GLint loc = set_vertex_attrib_data(context, index, offset, length, pointer);
 
-    GLint loc = set_vertex_attrib_data(context, index, offset, length, pointer);
 
-    express_printf("d_glVertexAttribPointer_without_bound index %u size %d type %x normalized %d stride %d offset %u length %d origin vbo %d\n", index, size, type, normalized, stride, offset, length, vbo);
-    glVertexAttribPointer(index, size, type, normalized, stride, loc);
+        Attrib_Point *point_data = bound_buffer->attrib_point;
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        express_printf("d_glVertexAttribPointer_without_bound vao %d %d obj %d index %u size %d type %x normalized %d stride %d offset %u length %d\n",status->guest_vao,status->host_vao, 
+                point_data->buffer_object[index], index, size, type, normalized, stride, offset, length);  
+
+        glVertexArrayVertexAttribOffsetEXT(status->guest_vao, point_data->buffer_object[index], index, size, type, normalized, stride, loc);
+        
+    }
+    else
+    {
+        GLint vbo = status->host_array_buffer;
+        
+        
+        
+        
+        
+
+
+        GLint loc = set_vertex_attrib_data(context, index, offset, length, pointer);
+
+        express_printf("d_glVertexAttribPointer_without_bound index %u size %d type %x normalized %d stride %d offset %u length %d origin vbo %d\n",index, size, type, normalized, stride, offset, length, vbo);  
+        glVertexAttribPointer(index, size, type, normalized, stride, loc);
+
+        glBindBuffer(GL_ARRAY_BUFFER, status->host_array_buffer);
+    }
 
     return;
 }
 
 void d_glVertexAttribIPointer_without_bound(void *context, GLuint index, GLint size, GLenum type, GLsizei stride, GLuint offset, GLuint length, const void *pointer)
 {
-    GLint vbo;
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+    Opengl_Context *opengl_context = (Opengl_Context *)context;
+    Bound_Buffer *bound_buffer = &(opengl_context->bound_buffer_status);
+    Buffer_Status *status = &(bound_buffer->buffer_status);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
+        GLint loc = set_vertex_attrib_data(context, index, offset, length, pointer);
 
-    GLint loc = set_vertex_attrib_data(context, index, offset, length, pointer);
+        express_printf("d_glVertexAttribIPointer_without_bound index %u size %d type %x stride %d offset %u length %d\n",index, size, type, stride, offset, length);  
+ 
 
-    express_printf("d_glVertexAttribIPointer_without_bound index %u size %d type %x stride %d offset %u length %d origin vbo %d\n", index, size, type, stride, offset, length, vbo);
+        Attrib_Point *point_data = bound_buffer->attrib_point;
 
-    glVertexAttribIPointer(index, size, type, stride, loc);
+        glVertexArrayVertexAttribIOffsetEXT(status->guest_vao, point_data->buffer_object[index], index, size, type, stride, loc);
+        
+    }
+    else
+    {
+        
+        
+        
+        
+        
+        
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        GLint loc = set_vertex_attrib_data(context, index, offset, length, pointer);
+
+
+        glVertexAttribIPointer(index, size, type, stride, loc);
+
+        glBindBuffer(GL_ARRAY_BUFFER, status->host_array_buffer);
+    }
 
     return;
 }
@@ -110,18 +246,35 @@ void d_glVertexAttribIPointer_without_bound(void *context, GLuint index, GLint s
 void d_glVertexAttribPointer_offset(void *context, GLuint index, GLuint size, GLenum type, GLboolean normalized, GLsizei stride, GLuint index_father, GLintptr offset)
 {
     Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
-
     Attrib_Point *point_data = bound_buffer->attrib_point;
+    Buffer_Status *status = &(bound_buffer->buffer_status);
 
-    GLint vbo;
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
+        express_printf("pointer offset vao %d %d obj %d  index %u size %d type %x stride %d offset %u real offset %d\n",
+        status->guest_vao,status->host_vao, point_data->buffer_object[index], index, size, type, stride, offset, offset + point_data->buffer_loc[index_father]);
 
-    glBindBuffer(GL_ARRAY_BUFFER, point_data->buffer_object[index_father]);
+        glVertexArrayVertexAttribOffsetEXT(status->guest_vao, point_data->buffer_object[index_father], index, size, type, normalized, stride, offset + point_data->buffer_loc[index_father]);
 
-    express_printf("pointer offset %lld\n", offset + point_data->buffer_loc[index_father]);
-    glVertexAttribPointer(index, size, type, normalized, stride, offset + point_data->buffer_loc[index_father]);
+    }
+    else
+    {
+        
+        
+        
+        
+        
+        
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, point_data->buffer_object[index_father]);
+
+        express_printf("pointer offset %lld\n", offset + point_data->buffer_loc[index_father]);
+        glVertexAttribPointer(index, size, type, normalized, stride, offset + point_data->buffer_loc[index_father]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, status->host_array_buffer);
+    }
+
+
 
     return;
 }
@@ -130,212 +283,473 @@ void d_glVertexAttribIPointer_offset(void *context, GLuint index, GLint size, GL
 {
 
     Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
-
+    
     Attrib_Point *point_data = bound_buffer->attrib_point;
 
-    GLint vbo;
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+    Buffer_Status *status = &(bound_buffer->buffer_status);
 
-    glBindBuffer(GL_ARRAY_BUFFER, point_data->buffer_object[index_father]);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
 
-    express_printf("pointer offset %lld\n", offset + point_data->buffer_loc[index_father]);
+        glVertexArrayVertexAttribIOffsetEXT(status->guest_vao, point_data->buffer_object[index_father], index, size, type, stride, offset + point_data->buffer_loc[index_father]);
 
-    glVertexAttribIPointer(index, size, type, stride, offset + point_data->buffer_loc[index_father]);
+    }
+    else
+    {
+        
+        
+        
+        
+        
+        
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, point_data->buffer_object[index_father]);
+
+        express_printf("pointer offset %lld\n", offset + point_data->buffer_loc[index_father]);
+
+        glVertexAttribIPointer(index, size, type, stride, offset + point_data->buffer_loc[index_father]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, status->host_array_buffer);
+    }
 
     return;
 }
 
 void d_glVertexAttribPointer_with_bound(void *context, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLintptr pointer)
 {
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
 
-    GLuint ebo = 0;
-    GLuint vbo = 0;
+        Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
+        Buffer_Status *status = &(bound_buffer->buffer_status);
+
+        glVertexArrayVertexAttribOffsetEXT(status->guest_vao, status->guest_array_buffer, index, size, type, normalized, stride, (GLintptr)pointer);
+    }
+    else
+    {
+        GLuint ebo = 0;
+        GLuint vbo = 0;
 #ifdef STD_DEBUG_LOG_GLOBAL_ON
-    glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ebo);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+        glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ebo);
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
 #endif
-    express_printf("%llx d_glVertexAttribPointer_with_bound index %u size %d type %x normalized %d stride %d pointer %llx ebo %d vbo %d\n", context, index, size, type, normalized, stride, pointer, ebo, vbo);
+        express_printf("%llx d_glVertexAttribPointer_with_bound index %u size %d type %x normalized %d stride %d pointer %llx ebo %d vbo %d\n",context,index, size, type, normalized, stride, pointer, ebo, vbo);  
 
-    glVertexAttribPointer(index, size, type, normalized, stride, (void *)pointer);
+        glVertexAttribPointer(index, size, type, normalized, stride, (void *)pointer);
+    }
     return;
 }
 
 void d_glVertexAttribIPointer_with_bound(void *context, GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr pointer)
 {
-    GLuint ebo = 0;
-    GLuint vbo = 0;
-#ifdef STD_DEBUG_LOG_GLOBAL_ON
-    glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ebo);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
-#endif
-    express_printf("%llx d_glVertexAttribIPointer_with_bound index %u size %d type %x stride %d pointer %llx ebo %d vbo %d\n", context, index, size, type, stride, pointer, ebo, vbo);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
 
-    glVertexAttribIPointer(index, size, type, stride, (void *)pointer);
+        Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
+        Buffer_Status *status = &(bound_buffer->buffer_status);
+
+        glVertexArrayVertexAttribIOffsetEXT(status->guest_vao, status->guest_array_buffer, index, size, type, stride, (GLintptr)pointer);
+    }
+    else
+    {
+        GLuint ebo = 0;
+        GLuint vbo = 0;
+#ifdef STD_DEBUG_LOG_GLOBAL_ON
+        glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ebo);
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+#endif
+        express_printf("%llx d_glVertexAttribIPointer_with_bound index %u size %d type %x stride %d pointer %llx ebo %d vbo %d\n",context,index, size, type, stride, pointer, ebo, vbo);  
+
+        glVertexAttribIPointer(index, size, type, stride, (void *)pointer);
+    }
+    
     return;
 }
 
-void d_glBindVertexArray_special(void *context, GLuint array)
-{
-    Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
 
-    Attrib_Point *temp_point = g_hash_table_lookup(bound_buffer->vao_point_data, GUINT_TO_POINTER(array));
-    if (temp_point == NULL)
-    {
-        temp_point = g_hash_table_lookup(bound_buffer->vao_point_data, GUINT_TO_POINTER(0));
-        printf("error! vao %d cannot find\n", array);
-    }
 
-    bound_buffer->attrib_point = temp_point;
-
-    bound_buffer->buffer_status.element_array_buffer = temp_point->element_array_buffer;
-
-    GLuint host_array = (GLuint)get_host_array_id(context, (unsigned int)array);
-    glBindVertexArray(host_array);
-}
 
 void d_glVertexAttribDivisor_origin(void *context, GLuint index, GLuint divisor)
 {
+    
+    express_printf("%llx glVertexAttribDivisor %u %u\n",context, index, divisor);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
 
-    express_printf("%llx glVertexAttribDivisor %u %u\n", context, index, divisor);
-    glVertexAttribDivisor(index, divisor);
+        Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
+        Buffer_Status *status = &(bound_buffer->buffer_status);
+        glVertexArrayVertexAttribDivisorEXT(status->guest_vao, index, divisor);
+
+    }
+    else
+    {
+        glVertexAttribDivisor(index, divisor);
+    }
 }
+
+
+
+
+
+
 
 void d_glDisableVertexAttribArray_origin(void *context, GLuint index)
 {
+    
+    express_printf("%llx glDisableVertexAttribArray %u\n",context, index);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
 
-    express_printf("%llx glDisableVertexAttribArray %u\n", context, index);
+        Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
+        Buffer_Status *status = &(bound_buffer->buffer_status);
+        glDisableVertexArrayAttribEXT(status->guest_vao, index);
 
-    glDisableVertexAttribArray(index);
+    }
+    else
+    {
+        glDisableVertexAttribArray(index);
+    }
 }
 void d_glEnableVertexAttribArray_origin(void *context, GLuint index)
 {
+    
+    express_printf("%llx glEnableVertexAttribArray %u\n",context, index);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
+    {
 
-    express_printf("%llx glEnableVertexAttribArray %u\n", context, index);
-
-    glEnableVertexAttribArray(index);
+        Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
+        Buffer_Status *status = &(bound_buffer->buffer_status);
+        glEnableVertexArrayAttribEXT(status->guest_vao, index);
+    }
+    else
+    {
+        glEnableVertexAttribArray(index);
+    }
 }
 
 void d_glDrawArrays_origin(void *context, GLenum mode, GLint first, GLsizei count)
 {
 
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    GLuint cu_vao = 0;
+#ifdef STD_DEBUG_LOG_GLOBAL_ON
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &cu_vao);
+#endif
+    express_printf("%llx glDrawArrays mode %x first %d count %d vao %d\n",context, mode, first, count, cu_vao);
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            express_printf("use external texture %d\n", status->current_texture_external);
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        
+        
+        
+        
+
+        
+        
+
+        glDrawArrays(mode, first, count);
+        express_printf("glDrawArrays end\n");
+    }
+    else
+    {
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+        }
+
+        glDrawArrays(mode, first, count);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
 
-    glDrawArrays(mode, first, count);
-
-    if (opengl_context->is_using_external_program == 1)
-    {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-    }
 }
 
 void d_glDrawArraysInstanced_origin(void *context, GLenum mode, GLint first, GLsizei count, GLsizei instancecount)
 {
+    
+    
 
+    
+    
+    
+    
+    
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawArraysInstanced(mode, first, count, instancecount);
     }
-    glDrawArraysInstanced(mode, first, count, instancecount);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+
+        }
+        glDrawArraysInstanced(mode, first, count, instancecount);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
 }
 
 void d_glDrawElements_with_bound(void *context, GLenum mode, GLsizei count, GLenum type, GLsizeiptr indices)
 {
+    
+    
 
-    GLuint ebo = 0;
-    GLuint vbo = 0;
-#ifdef STD_DEBUG_LOG_GLOBAL_ON
-    glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ebo);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
-#endif
-    express_printf("drawElements %x %d %x %lx vbo %u ebo %u\n", mode, (int)count, type, indices, vbo, ebo);
+    
+    
+    
+    
+    
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+        
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawElements(mode, count, type, (void *)indices);
     }
-    glDrawElements(mode, count, type, (void *)indices);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        GLuint ebo = 0;
+        GLuint vbo = 0;
+#ifdef STD_DEBUG_LOG_GLOBAL_ON
+        glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ebo);
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+#endif
+        express_printf("drawElements %x %d %x %lx vbo %u ebo %u\n",mode,(int)count,type,indices, vbo, ebo);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+
+        }
+        
+        
+        
+        
+        
+        
+
+        glDrawElements(mode, count, type, (void *)indices);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
+
+
+
 }
 
 GLint set_indices_data(void *context, void *pointer, GLint length)
 {
     Bound_Buffer *bound_buffer = &(((Opengl_Context *)context)->bound_buffer_status);
-
+    
     Attrib_Point *point_data = bound_buffer->attrib_point;
 
     GLint buffer_loc = 0;
     unsigned char *map_pointer = NULL;
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, point_data->indices_buffer_object);
-    if (length > point_data->indices_buffer_len)
+    
+    
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
+        Buffer_Status *status = &(bound_buffer->buffer_status);
 
-        int alloc_size = length * BUFFER_MULTIPLY_FACTOR;
-        if (alloc_size < 1024)
+        if (length > point_data->indices_buffer_len)
         {
-            alloc_size = 1024;
+            
+            
+            
+
+            int alloc_size =  length * BUFFER_MULTIPLY_FACTOR;
+            if(alloc_size < 1024)
+            {
+                alloc_size = 1024;
+            }
+
+            
+            glNamedBufferData(point_data->indices_buffer_object, alloc_size, NULL, GL_STREAM_DRAW);
+            point_data->indices_buffer_len = alloc_size;
+            map_pointer = glMapNamedBufferRange(point_data->indices_buffer_object, 0, length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+            glFlushMappedNamedBufferRange(point_data->indices_buffer_object, 0, length);
+
+            point_data->remain_indices_buffer_len = point_data->indices_buffer_len - length;
+            buffer_loc = 0;
+        }
+        else if (length > point_data->remain_indices_buffer_len)
+        {
+            map_pointer = glMapNamedBufferRange(point_data->indices_buffer_object, 0, point_data->indices_buffer_len,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+            
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+
+            glFlushMappedNamedBufferRange(point_data->indices_buffer_object, 0, length);
+
+            point_data->remain_indices_buffer_len = point_data->indices_buffer_len - length;
+            buffer_loc = 0;
+        }
+        else
+        {
+            map_pointer = glMapNamedBufferRange(point_data->indices_buffer_object,
+                                        point_data->indices_buffer_len - point_data->remain_indices_buffer_len, length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+
+            glFlushMappedNamedBufferRange(point_data->indices_buffer_object, 0, length);
+
+            buffer_loc = point_data->indices_buffer_len - point_data->remain_indices_buffer_len;
+            point_data->remain_indices_buffer_len -= length;
         }
 
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, alloc_size, NULL, GL_STREAM_DRAW);
-        point_data->indices_buffer_len = alloc_size;
-        map_pointer = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length,
-                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+        express_printf("indices loc %d %d\n", buffer_loc, buffer_loc + length);
 
-        guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
-        glFlushMappedBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length);
+        glUnmapNamedBuffer(point_data->indices_buffer_object);
 
-        point_data->remain_indices_buffer_len = point_data->indices_buffer_len - length;
-        buffer_loc = 0;
-    }
-    else if (length > point_data->remain_indices_buffer_len)
-    {
-        map_pointer = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, point_data->indices_buffer_len,
-                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        
+        
+        
+        
+        
+        
 
-        guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
-
-        glFlushMappedBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length);
-
-        point_data->remain_indices_buffer_len = point_data->indices_buffer_len - length;
-        buffer_loc = 0;
     }
     else
     {
-        map_pointer = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER,
-                                       point_data->indices_buffer_len - point_data->remain_indices_buffer_len, length,
-                                       GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, point_data->indices_buffer_object);
+        if (length > point_data->indices_buffer_len)
+        {
+            
+            
+            
 
-        guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+            int alloc_size =  length * BUFFER_MULTIPLY_FACTOR;
+            if(alloc_size < 1024)
+            {
+                alloc_size = 1024;
+            }
 
-        glFlushMappedBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length);
+            
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, alloc_size, NULL, GL_STREAM_DRAW);
+            point_data->indices_buffer_len = alloc_size;
+            map_pointer = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
-        buffer_loc = point_data->indices_buffer_len - point_data->remain_indices_buffer_len;
-        point_data->remain_indices_buffer_len -= length;
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+            glFlushMappedBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length);
+
+            point_data->remain_indices_buffer_len = point_data->indices_buffer_len - length;
+            buffer_loc = 0;
+        }
+        else if (length > point_data->remain_indices_buffer_len)
+        {
+            map_pointer = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, point_data->indices_buffer_len,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+            
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+
+            glFlushMappedBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length);
+
+            point_data->remain_indices_buffer_len = point_data->indices_buffer_len - length;
+            buffer_loc = 0;
+        }
+        else
+        {
+            map_pointer = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER,
+                                        point_data->indices_buffer_len - point_data->remain_indices_buffer_len, length,
+                                        GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+            guest_write((Guest_Mem *)pointer, map_pointer, 0, length);
+
+            glFlushMappedBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, length);
+
+            buffer_loc = point_data->indices_buffer_len - point_data->remain_indices_buffer_len;
+            point_data->remain_indices_buffer_len -= length;
+
+            
+            
+            
+
+            
+            
+
+            
+            
+        }
+
+        express_printf("indices loc %d %d\n", buffer_loc, buffer_loc + length);
+
+        glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
     }
 
-    express_printf("indices loc %d %d\n", buffer_loc, buffer_loc + length);
 
-    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
     return buffer_loc;
 }
@@ -345,26 +759,91 @@ void d_glDrawElements_without_bound(void *context, GLenum mode, GLsizei count, G
 
     int len = count * gl_sizeof(type);
 
-    express_printf("drawElements without %x %d %x %lx len %d\n", mode, (int)count, type, indices, len);
+    express_printf("drawElements without %x %d %x %lx len %d\n",mode,(int)count,type,indices,len);
 
+    vao_binding_status_sync(context);
+    
     GLint buffer_loc = set_indices_data(context, indices, len);
 
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawElements(mode, count, type, buffer_loc);
     }
-
-    glDrawElements(mode, count, type, buffer_loc);
-
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-    }
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+
+
+        
+        
+
+
+        glDrawElements(mode, count, type, buffer_loc);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+
+
 }
 
 void d_glDrawElementsInstanced_without_bound(void *context, GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount)
@@ -372,58 +851,166 @@ void d_glDrawElementsInstanced_without_bound(void *context, GLenum mode, GLsizei
 
     int len = count * gl_sizeof(type);
 
+    vao_binding_status_sync(context);
+
     GLint buffer_loc = set_indices_data(context, indices, len);
 
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawElementsInstanced(mode, count, type, buffer_loc, instancecount);
+    }
+    else
+    {
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+
+        }
+        
+        glDrawElementsInstanced(mode, count, type, buffer_loc, instancecount);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
     }
 
-    glDrawElementsInstanced(mode, count, type, buffer_loc, instancecount);
 
-    if (opengl_context->is_using_external_program == 1)
-    {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-    }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    
+    
+    
+    
+    
+    
+    
+    
 }
 
 void d_glDrawElementsInstanced_with_bound(void *context, GLenum mode, GLsizei count, GLenum type, GLsizeiptr indices, GLsizei instancecount)
 {
+    
+    
 
+    
+    
+    
+    
+    
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+        
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawElementsInstanced(mode, count, type, (void *)indices, instancecount);
     }
-    glDrawElementsInstanced(mode, count, type, (void *)indices, instancecount);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+
+        }
+        glDrawElementsInstanced(mode, count, type, (void *)indices, instancecount);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
 }
 
 void d_glDrawRangeElements_with_bound(void *context, GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, GLsizeiptr indices)
 {
+    
 
+    
+    
+
+    
+    
+    
+    
+    
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+        
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawRangeElements(mode, start, end, count, type, (void *)indices);
     }
-    glDrawRangeElements(mode, start, end, count, type, (void *)indices);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+
+        }
+        glDrawRangeElements(mode, start, end, count, type, (void *)indices);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
+
 }
 
 void d_glDrawRangeElements_without_bound(void *context, GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices)
@@ -431,21 +1018,60 @@ void d_glDrawRangeElements_without_bound(void *context, GLenum mode, GLuint star
 
     int len = count * gl_sizeof(type);
 
+    vao_binding_status_sync(context);
+
     GLint buffer_loc = set_indices_data(context, indices, len);
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawRangeElements(mode, start, end, count, type, buffer_loc);
     }
-    glDrawRangeElements(mode, start, end, count, type, buffer_loc);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+            
+
+        }
+        glDrawRangeElements(mode, start, end, count, type, buffer_loc);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+    
+    
+    
+    
+    
+
+    
+    
+    
 }
 
 void d_glVertexBindingDivisor_special(void *context, GLuint bindingindex, GLuint divisor)
@@ -453,68 +1079,180 @@ void d_glVertexBindingDivisor_special(void *context, GLuint bindingindex, GLuint
     glVertexBindingDivisor(bindingindex, divisor);
 }
 
+
 void d_glDrawArraysIndirect_with_bound(void *context, GLenum mode, GLintptr indirect)
 {
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+
+        buffer_binding_status_sync(context, GL_DRAW_INDIRECT_BUFFER);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawArraysIndirect(mode, (void *)indirect);
     }
-    glDrawArraysIndirect(mode, (void *)indirect);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+        }
+        glDrawArraysIndirect(mode, (void *)indirect);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
+
 }
 
 void d_glDrawArraysIndirect_without_bound(void *context, GLenum mode, const void *indirect)
 {
-
+    
+    
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+
+        vao_binding_status_sync(context);
+        buffer_binding_status_sync(context, GL_DRAW_INDIRECT_BUFFER);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawArraysIndirect(mode, indirect);
     }
-    glDrawArraysIndirect(mode, indirect);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+        }
+        glDrawArraysIndirect(mode, indirect);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
+
+
 }
 
 void d_glDrawElementsIndirect_with_bound(void *context, GLenum mode, GLenum type, GLintptr indirect)
 {
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+
+        buffer_binding_status_sync(context, GL_DRAW_INDIRECT_BUFFER);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawElementsIndirect(mode, type, (void *)indirect);
     }
-    glDrawElementsIndirect(mode, type, (void *)indirect);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+        }
+        glDrawElementsIndirect(mode, type, (void *)indirect);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
+
 }
+
 
 void d_glDrawElementsIndirect_without_bound(void *context, GLenum mode, GLenum type, const void *indirect)
 {
-
+    
+    
     Opengl_Context *opengl_context = (Opengl_Context *)context;
-    if (opengl_context->is_using_external_program == 1)
+    Texture_Binding_Status *status = &(opengl_context->texture_binding_status);
+
+    if(host_opengl_version >= 45 && DSA_enable == 1)
     {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+        vao_binding_status_sync(context);
+
+        buffer_binding_status_sync(context, GL_DRAW_INDIRECT_BUFFER);
+
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTextureUnit(0, status->current_texture_external);
+            status->host_current_texture_2D[0] = status->current_texture_external;
+
+            
+            
+        }
+        else
+        {
+            texture_unit_status_sync(context, -1);
+        }
+
+        glDrawElementsIndirect(mode, type, indirect);
     }
-    glDrawElementsIndirect(mode, type, indirect);
-    if (opengl_context->is_using_external_program == 1)
+    else
     {
-        glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-        glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, status->current_texture_external);
+        }
+        glDrawElementsIndirect(mode, type, indirect);
+        if(opengl_context->is_using_external_program == 1)
+        {
+            glBindTexture(GL_TEXTURE_2D, status->host_current_texture_2D[0]);
+            glActiveTexture(status->host_current_active_texture + GL_TEXTURE0);
+        }
     }
 }

@@ -28,6 +28,16 @@
 #define MAIN_DESTROY_ONE_SYNC 7
 #define MAIN_DESTROY_ONE_TEXTURE 8
 #define MAIN_DESTROY_GBUFFER 9
+#define MAIN_CANCEL_GBUFFER 10
+
+#define GBUFFER_TYPE_NONE 0
+#define GBUFFER_TYPE_WINDOW 1
+#define GBUFFER_TYPE_BITMAP 2
+#define GBUFFER_TYPE_NATIVE 3
+#define GBUFFER_TYPE_BITMAP_NEED_DATA 4
+#define GBUFFER_TYPE_TEXTURE 5
+#define GBUFFER_TYPE_FBO 6
+#define GBUFFER_TYPE_FBO_NEED_DATA 7
 
 #define ATOMIC_LOCK(s)                                             \
      int atomic_cnt = 0;                                           \
@@ -37,6 +47,8 @@
 
 #define ATOMIC_SET_USED(s) (atomic_cmpxchg(&(s), 0, 1))
 #define ATOMIC_SET_UNUSED(s) (atomic_cmpxchg(&(s), 1, 0))
+
+#define ENABLE_OPENGL_DEBUG
 
 #define ENSURE_SAME_WIDTH_HEIGHT_RATIO
 
@@ -48,7 +60,8 @@ typedef struct Main_window_Event
 
 typedef struct Static_Context_Values
 {
-
+     GLuint composer_HZ;
+     GLuint composer_pid;
      GLint num_extensions;
 
      GLint major_version;
@@ -169,6 +182,12 @@ extern Static_Context_Values *preload_static_context_value;
 
 extern void *dummy_window_for_sync;
 
+extern int host_opengl_version;
+
+extern int DSA_enable;
+
+extern int composer_refresh_HZ;
+
 void *native_window_thread(void *opaque);
 
 int draw_wait_GSYNC(void *event, int wait_frame_num);
@@ -176,6 +195,10 @@ int draw_wait_GSYNC(void *event, int wait_frame_num);
 void add_gbuffer_to_global(Graphic_Buffer *global_gbuffer);
 
 Graphic_Buffer *get_gbuffer_from_global_map(uint64_t gbuffer_id);
+
+int get_global_gbuffer_type(uint64_t gbuffer_id);
+
+void set_global_gbuffer_type(uint64_t gbuffer_id, int type);
 
 void send_message_to_main_window(int message_code, void *data);
 

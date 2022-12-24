@@ -2,7 +2,7 @@
 /**
  * @file direct_express_distribute.c
  * @author Di Gao
- * @brief Use polling to retrieve call data and distribute to other drawing threads. 
+ * @brief Use polling to retrieve call data and distribute to other drawing threads.
  * Also responsible for data recycling.
  * @version 0.1
  * @date 2020-11-25
@@ -21,12 +21,17 @@ static GHashTable *device_thread_info = NULL;
 static VirtIODevice *direct_express_device;
 
 static Direct_Express_Call *call_recycle_queue[(CALL_BUF_SIZE + 2)];
-static int call_recycle_queue_header;
+static volatile int call_recycle_queue_header;
 static volatile int call_recycle_queue_tail;
 
 static void *guest_null_ptr = NULL;
 
 bool direct_express_should_stop = 0;
+
+int atomic_distribute_thread_running = 0;
+
+static volatile Direct_Express_Call *packaging_call = NULL;
+static int remain_elem_num = 0;
 
 static void release_call(Direct_Express_Call *out_call);
 static void push_free_callback(Direct_Express_Call *call, int notify);
@@ -54,12 +59,12 @@ RECYCLE_EVENT recycle_event;
 static Direct_Express_Call pre_alloc_call[CALL_BUF_SIZE * 2];
 static bool pre_alloc_call_flag[CALL_BUF_SIZE * 2];
 
-static int pre_alloc_call_loc = 0;
+static volatile int pre_alloc_call_loc = 0;
 
 static Guest_Mem pre_guest_mem[CALL_BUF_SIZE * 2 * MAX_PARA_NUM];
 static bool pre_guest_mem_flag[CALL_BUF_SIZE * 2 * MAX_PARA_NUM];
 
-static int pre_guest_mem_loc = 0;
+static volatile int pre_guest_mem_loc = 0;
 
 Direct_Express_Call *alloc_one_call()
 {
@@ -316,6 +321,7 @@ static int fill_direct_express_queue_elem(Direct_Express_Queue_Elem *elem, unsig
         {
             if (flag_buf == NULL)
             {
+                printf("error! null flag_buf\n");
                 return 0;
             }
             *id = flag_buf->id;
@@ -355,31 +361,54 @@ static Direct_Express_Call *pack_call_from_queue(VirtQueue *vq)
     while (elem)
     {
 
-        if (unlikely(fill_direct_express_queue_elem(elem, &fun_id, &thread_id, &process_id, &unique_id, &para_num) == 0))
+        if (packaging_call != NULL)
         {
+            call = packaging_call;
+            packaging_call = NULL;
+            para_num = remain_elem_num - 1;
+            remain_elem_num = 0;
 
-            VIRTIO_ELEM_PUSH_ALL(vq, Direct_Express_Queue_Elem, elem, 1, next);
-            DIRECT_EXPRESS_QUEUE_ELEMS_FREE(elem);
-            express_printf("fill error %u %u\n", elem->elem.in_num, elem->elem.out_num);
-            return NULL;
+            if (unlikely(elem->elem.in_num != 0 || elem->elem.out_num == 0 || fill_direct_express_queue_elem(elem, NULL, NULL, NULL, NULL, NULL) == 0))
+            {
+
+                VIRTIO_ELEM_PUSH_ALL(vq, Direct_Express_Queue_Elem, call->elem_header, 1, next);
+                DIRECT_EXPRESS_QUEUE_ELEMS_FREE(call->elem_header);
+                release_one_call(call);
+                call = NULL;
+                printf(YELLOW("fill para error first elem %u,%u remain_elem_num %d\n"), elem->elem.in_num, elem->elem.out_num, para_num);
+                break;
+            }
+            call->elem_tail->next = elem;
+            call->elem_tail = elem;
         }
-
-        call = alloc_one_call();
-        if (call == NULL)
+        else
         {
-            printf("error! alloc call return NULL!\n");
-        }
-        call->elem_header = elem;
-        call->elem_tail = elem;
-        call->vq = vq;
+            if (unlikely(fill_direct_express_queue_elem(elem, &fun_id, &thread_id, &process_id, &unique_id, &para_num) == 0))
+            {
 
-        call->para_num = para_num;
-        call->id = fun_id;
-        call->thread_id = thread_id;
-        call->process_id = process_id;
-        call->unique_id = unique_id;
-        call->spend_time = 0;
-        call->next = NULL;
+                VIRTIO_ELEM_PUSH_ALL(vq, Direct_Express_Queue_Elem, elem, 1, next);
+                DIRECT_EXPRESS_QUEUE_ELEMS_FREE(elem);
+                printf("fill error %u %u\n", elem->elem.in_num, elem->elem.out_num);
+                return NULL;
+            }
+
+            call = alloc_one_call();
+            if (call == NULL)
+            {
+                printf("error! alloc call return NULL!\n");
+            }
+            call->elem_header = elem;
+            call->elem_tail = elem;
+            call->vq = vq;
+
+            call->para_num = para_num;
+            call->id = fun_id;
+            call->thread_id = thread_id;
+            call->process_id = process_id;
+            call->unique_id = unique_id;
+            call->spend_time = 0;
+            call->next = NULL;
+        }
 
         for (int i = 0; i < para_num; i++)
         {
@@ -388,15 +417,12 @@ static Direct_Express_Call *pack_call_from_queue(VirtQueue *vq)
 
             elem = virtqueue_pop(vq, sizeof(Direct_Express_Queue_Elem));
 
-            while (elem == NULL && cnt_timeout < 10000000)
+            if (elem == NULL)
             {
+                packaging_call = call;
+                remain_elem_num = para_num - i;
 
-                elem = virtqueue_pop(vq, sizeof(Direct_Express_Queue_Elem));
-                cnt_timeout++;
-                if (direct_express_should_stop)
-                {
-                    return NULL;
-                }
+                return NULL;
             }
 
             if (unlikely(elem == NULL || elem->elem.in_num != 0 || elem->elem.out_num == 0 || fill_direct_express_queue_elem(elem, NULL, NULL, NULL, NULL, NULL) == 0))
@@ -408,11 +434,11 @@ static Direct_Express_Call *pack_call_from_queue(VirtQueue *vq)
                 call = NULL;
                 if (elem == NULL)
                 {
-                    express_printf(YELLOW("fill para error NULL\n"));
+                    printf(YELLOW("fill para error NULL %d\n"), cnt_timeout);
                 }
                 else
                 {
-                    express_printf(YELLOW("fill para error %u,%u\n"), elem->elem.in_num, elem->elem.out_num);
+                    printf(YELLOW("fill para error %u,%u\n"), elem->elem.in_num, elem->elem.out_num);
                 }
                 break;
             }
@@ -567,6 +593,92 @@ void *call_distribute_thread(void *opaque)
     int pop_cnt = 0;
     int in_handle_num = 0;
 
+    e->thread_run = 2;
+
+    int64_t spend_time_all = 0;
+    int64_t call_num = 0;
+
+#ifdef DISTRIBUTE_WHEN_VM_EXIT
+    while (atomic_cmpxchg(&atomic_distribute_thread_running, 0, 1) != 0)
+        ;
+#endif
+    while (e->thread_run && !direct_express_should_stop)
+    {
+
+        int has_handle_flag = 0;
+        int pop_flag = 1;
+        int recycle_flag = 1;
+        virtqueue_data_distribute_and_recycle(vq, &pop_flag, &recycle_flag);
+
+        if (pop_flag != 0)
+        {
+            pop_cnt += 1;
+            in_handle_num += 1;
+            has_handle_flag = 1;
+        }
+        if (recycle_flag != 0)
+        {
+            in_handle_num -= 1;
+            release_cnt += 1;
+            has_handle_flag = 1;
+        }
+
+        if (!has_handle_flag)
+
+        {
+
+            if (release_cnt != 0)
+            {
+
+                release_cnt = 0;
+                express_printf("notify guest\n");
+                virtio_notify(VIRTIO_DEVICE(vdev), vq);
+            }
+
+            pop_cnt = 0;
+
+#ifdef DISTRIBUTE_WHEN_VM_EXIT
+            atomic_set(&atomic_distribute_thread_running, 0);
+#endif
+
+            distribute_wait();
+            if (direct_express_should_stop)
+            {
+                return NULL;
+            }
+
+#ifdef DISTRIBUTE_WHEN_VM_EXIT
+            if (atomic_cmpxchg(&atomic_distribute_thread_running, 0, 1) == 1)
+            {
+
+                if (atomic_cmpxchg(&atomic_distribute_thread_running, 1, 2) == 1)
+                {
+                    int cnt_lock = 0;
+                    while (atomic_cmpxchg(&atomic_distribute_thread_running, 0, 1) != 0)
+                    {
+                        cnt_lock++;
+                    }
+                }
+                else
+                {
+                }
+            }
+#endif
+        }
+
+        if (release_cnt >= 128)
+        {
+
+            release_cnt = 0;
+            virtio_notify(VIRTIO_DEVICE(vdev), vq);
+        }
+    }
+
+    return NULL;
+}
+
+void guest_null_ptr_init(VirtQueue *vq)
+{
     VirtQueueElement *elem;
 
     express_printf("wait for pop\n");
@@ -603,77 +715,42 @@ void *call_distribute_thread(void *opaque)
     }
     else
     {
-        express_printf("error! null ptr cannot be init!\n");
+        printf("error! null ptr cannot be init!\n");
     }
     virtqueue_push(vq, elem, 1);
+}
 
-    int64_t spend_time_all = 0;
-    int64_t call_num = 0;
-    while (e->thread_run && !direct_express_should_stop)
+void virtqueue_data_distribute_and_recycle(VirtQueue *vq, int *pop_flag, int *recycle_flag)
+{
+    Direct_Express_Call *call = NULL;
+    int origin_pop_flag = *pop_flag;
+    int origin_recycle_flag = *recycle_flag;
+    *pop_flag = 0;
+    *recycle_flag = 0;
+    if (origin_pop_flag == 1 && (call = pack_call_from_queue(vq)) != NULL)
     {
 
-        int has_handle_flag = 0;
-        if ((call = pack_call_from_queue(vq)) != NULL)
-        {
+        express_printf("virtio has data push\n");
 
-            pop_cnt += 1;
-            in_handle_num += 1;
-
-            express_printf("virtio has data push\n");
-
-            call->vdev = vdev;
-            call->callback = push_free_callback;
-            call->is_end = 0;
-            push_to_thread(call);
-            has_handle_flag = 1;
-        }
-
-        if (call_recycle_queue[(call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2)] != NULL)
-        {
-
-            Direct_Express_Call *out_call = call_recycle_queue[(call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2)];
-            call_recycle_queue[(call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2)] = NULL;
-
-            call_recycle_queue_header = (call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2);
-
-            in_handle_num -= 1;
-
-            release_call(out_call);
-
-            release_cnt += 1;
-            has_handle_flag = 1;
-        }
-
-        if (!has_handle_flag)
-
-        {
-
-            if (release_cnt != 0)
-            {
-
-                release_cnt = 0;
-                express_printf("notify guest\n");
-                virtio_notify(VIRTIO_DEVICE(vdev), vq);
-            }
-
-            pop_cnt = 0;
-
-            distribute_wait();
-            if (direct_express_should_stop)
-            {
-                return NULL;
-            }
-        }
-
-        if (release_cnt >= 128)
-        {
-
-            release_cnt = 0;
-            virtio_notify(VIRTIO_DEVICE(vdev), vq);
-        }
+        call->vdev = direct_express_device;
+        call->callback = push_free_callback;
+        call->is_end = 0;
+        push_to_thread(call);
+        *pop_flag = 1;
     }
 
-    return NULL;
+    if (origin_recycle_flag == 1 && call_recycle_queue[(call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2)] != NULL)
+    {
+
+        Direct_Express_Call *out_call = call_recycle_queue[(call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2)];
+        call_recycle_queue[(call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2)] = NULL;
+
+        call_recycle_queue_header = (call_recycle_queue_header + 1) % (CALL_BUF_SIZE + 2);
+        release_call(out_call);
+        *recycle_flag = 1;
+    }
+
+    return;
 }
 
 static void release_call(Direct_Express_Call *out_call)

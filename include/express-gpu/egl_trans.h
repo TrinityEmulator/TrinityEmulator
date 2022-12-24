@@ -108,9 +108,9 @@
 
 #define PARA_NUM_MIN_eglDestroySync (1)
 
-#define FUNID_eglCreateImage ((EXPRESS_GPU_FUN_ID << 32u) + (((unsigned long long)0x1) << 24u) + 10038)
+#define FUNID_eglCreateImage ((EXPRESS_GPU_FUN_ID << 32u) + 10038)
 
-#define PARA_NUM_MIN_eglCreateImage (2)
+#define PARA_NUM_MIN_eglCreateImage (1)
 
 #define FUNID_eglDestroyImage ((EXPRESS_GPU_FUN_ID << 32u) + 10039)
 
@@ -128,7 +128,7 @@
 
 #define PARA_NUM_MIN_eglSwapBuffers (3)
 
-#define FUNID_eglQueueBuffer ((EXPRESS_GPU_FUN_ID << 32u) + (((unsigned long long)0x1) << 24u) + 10043)
+#define FUNID_eglQueueBuffer ((EXPRESS_GPU_FUN_ID << 32u) + 10043)
 
 #define PARA_NUM_MIN_eglQueueBuffer (1)
 
@@ -139,6 +139,10 @@
 #define FUNID_eglSetGraphicBufferID ((EXPRESS_GPU_FUN_ID << 32u) + (((unsigned long long)0x1) << 24u) + 10045)
 
 #define PARA_NUM_MIN_eglSetGraphicBufferID (1)
+
+#define FUNID_eglGetGBufferType ((EXPRESS_GPU_FUN_ID << 32u) + (((unsigned long long)0x1) << 24u) + 10046)
+
+#define PARA_NUM_MIN_eglGetGBufferType (2)
 
 void egl_decode_invoke(Render_Thread_Context *context, Direct_Express_Call *call);
 

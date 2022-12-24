@@ -1,5 +1,3 @@
-
-
 /**
  * @file offscreen_render_thread.c
  * @author Di Gao
@@ -11,6 +9,7 @@
  * @copyright Copyright (c) 2020
  *
  */
+
 #include "direct-express/direct_express_distribute.h"
 
 #include "direct-express/express_log.h"
@@ -43,8 +42,6 @@ void cluster_decode_invoke(Thread_Context *context, Direct_Express_Call *call);
 void release_call_special(Direct_Express_Call *call, int notify);
 
 int create_call_from_cluster(uint64_t *send_buf, unsigned char *save_buf, Direct_Express_Call *pre_call, Direct_Express_Queue_Elem *pre_elem, Guest_Mem *pre_guest_mem, Scatter_Data *pre_scatter_data);
-
-static gboolean g_window_Surface_destroy(gpointer key, gpointer data, gpointer user_data);
 
 static void g_surface_map_destroy(gpointer data);
 
@@ -85,7 +82,7 @@ void decode_invoke(Thread_Context *context, Direct_Express_Call *call)
         GLenum error_code = glGetError();
         if (error_code != GL_NO_ERROR)
         {
-            printf("#fun_id %llu get error %lx\n", fun_id, error_code);
+            printf("#fun_id %llu context %llx get error %lx\n", fun_id, render_context->opengl_context, error_code);
         }
 #endif
     }
@@ -294,7 +291,7 @@ Thread_Context *get_render_thread_context(uint64_t type_id, uint64_t thread_id, 
             process->surface_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_surface_map_destroy);
 
             process->gbuffer_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, gbuffer_map_destroy);
-            process->egl_sync_resource = g_malloc(sizeof(Resource_Map_Status));
+            process->egl_sync_resource = g_malloc0(sizeof(Resource_Map_Status));
             process->egl_sync_resource->map_size = 0;
             process->egl_sync_resource->max_id = 0;
             process->egl_sync_resource->resource_id_map = NULL;
@@ -372,10 +369,33 @@ static void gbuffer_map_destroy(gpointer data)
 {
     Graphic_Buffer *gbuffer = (Graphic_Buffer *)data;
 
-    gbuffer->remain_life_time--;
-    gbuffer->is_dying = 1;
+    express_printf("destroy map gbuffer %llx type %d ptr %llx width %d height %d format %x type %d\n", gbuffer->gbuffer_id, gbuffer->usage_type, gbuffer, gbuffer->width, gbuffer->height, gbuffer->internal_format, gbuffer->usage_type);
 
-    send_message_to_main_window(MAIN_DESTROY_GBUFFER, gbuffer);
+    if (gbuffer->usage_type == GBUFFER_TYPE_TEXTURE)
+    {
+        if (gbuffer->data_sync != NULL)
+        {
+            glDeleteSync(gbuffer->data_sync);
+        }
+        if (gbuffer->delete_sync != NULL)
+        {
+            glDeleteSync(gbuffer->delete_sync);
+        }
+        set_global_gbuffer_type(gbuffer->gbuffer_id, GBUFFER_TYPE_NONE);
+        g_free(gbuffer);
+    }
+    else
+    {
+        ATOMIC_LOCK(gbuffer->is_lock);
+        gbuffer->remain_life_time = (gbuffer->usage_type == GBUFFER_TYPE_BITMAP ? MAX_BITMAP_LIFE_TIME : MAX_WINDOW_LIFE_TIME);
+        gbuffer->is_using = 0;
+        if (gbuffer->is_dying == 0)
+        {
+            gbuffer->is_dying = 1;
+            send_message_to_main_window(MAIN_DESTROY_GBUFFER, gbuffer);
+        }
+        ATOMIC_UNLOCK(gbuffer->is_lock);
+    }
 
     return;
 }
@@ -397,14 +417,16 @@ void render_context_destroy(Thread_Context *context)
     {
         express_printf("render context destroy thread %llx context %llx when current window %llx\n", thread_context, thread_context->opengl_context, thread_context->opengl_context->window);
 
+        g_hash_table_remove(process_context->context_map, GUINT_TO_POINTER(thread_context->opengl_context->guest_context));
         egl_makeCurrent(NULL);
+
         thread_context->opengl_context->is_current = 0;
     }
 
-    express_printf("process destroy cnt %d\n", process_context->thread_cnt);
+    express_printf("process %llx destroy cnt %d\n", process_context, process_context->thread_cnt);
     if (atomic_dec_fetch(&(process_context->thread_cnt)) == 0)
     {
-        express_printf("process destroy everything\n");
+        express_printf("process %llx destroy everything\n", process_context);
         g_hash_table_destroy(process_context->context_map);
 
         g_hash_table_destroy(process_context->surface_map);

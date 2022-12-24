@@ -9,6 +9,8 @@
  * 
  */
 #include "express-gpu/egl_window.h"
+#include "direct-express/express_log.h"
+
 #include <glib.h>
 
 PFN_wglSwapInterval wglSwapInterval;
@@ -178,8 +180,9 @@ void egl_destroyContext(void *context)
 
     if (context != NULL)
     {
+        gint64 t = g_get_real_time();
 
-        printf("destroy window %llx\n", context);
+        express_printf("destroy window %llx\n", context);
         HDC pbuffer_dc = g_hash_table_lookup(context_dc_map, (gpointer)context);
         HPBUFFERARB pbuffer = g_hash_table_lookup(context_pbuffer_map, (gpointer)context);
 
@@ -189,5 +192,7 @@ void egl_destroyContext(void *context)
 
         g_hash_table_remove(context_dc_map, (gpointer)context);
         g_hash_table_remove(context_pbuffer_map, (gpointer)context);
+
+        express_printf("destroy window ok %lld\n", g_get_real_time() - t);
     }
 }

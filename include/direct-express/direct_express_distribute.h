@@ -8,9 +8,11 @@
 #define COPY_PARA 2
 #define RET_PARA 4
 
-#define MAX_PARA_NUM 64
+#define MAX_PARA_NUM 60
 
 #define TERMINATE_FUN_ID 0
+
+#define DISTRIBUTE_WHEN_VM_EXIT
 
 #define DIRECT_EXPRESS_QUEUE_ELEMS_FREE(header_ptr)               \
     for (Direct_Express_Queue_Elem *a = (header_ptr); a != NULL;) \
@@ -130,8 +132,8 @@ typedef struct Thread_Context
 
     Direct_Express_Call *call_buf[CALL_BUF_SIZE + 2];
 
-    int read_loc;
-    int write_loc;
+    volatile int read_loc;
+    volatile int write_loc;
 
     int atomic_event_lock;
 
@@ -172,7 +174,13 @@ typedef struct Express_Device_Info
 
 extern bool direct_express_should_stop;
 
+extern int atomic_distribute_thread_running;
+
 void *call_distribute_thread(void *opaque);
+
+void guest_null_ptr_init(VirtQueue *vq);
+
+void virtqueue_data_distribute_and_recycle(VirtQueue *vq, int *pop_flag, int *recycle_flag);
 
 Thread_Context *thread_context_create(uint64_t thread_id, uint64_t type_id, uint64_t len, Express_Device_Info *info);
 

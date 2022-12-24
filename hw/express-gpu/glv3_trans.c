@@ -1,15 +1,13 @@
 /**
- * @file glv3_trans.c
- * @author gaodi (gaodi.sec@qq.com)
- * @brief
+ * @file glv3_context.c
+ * @author Di Gao
+ * @brief Translation of OpenGL v3 texture-related functions
  * @version 0.1
- * @date 2020-11-25
- *
- * @copyright Copyright (c) 2020
- *
+ * @date 2022-05-14
+ * 
+ * @copyright Copyright (c) 2021
+ * 
  */
-
-#define STD_DEBUG_LOG
 
 #include "express-gpu/glv3_trans.h"
 #include "express-gpu/offscreen_render_thread.h"
@@ -18,6 +16,7 @@
 #include "express-gpu/glv3_texture.h"
 #include "express-gpu/glv3_vertex.h"
 #include "express-gpu/glv3_resource.h"
+#include "express-gpu/glv3_status.h"
 
 #include "express-gpu/glv3_context.h"
 #include "express-gpu/gl_helper.h"
@@ -38,6 +37,24 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         call->callback(call, 0);
         return;
     }
+
+    Window_Buffer *draw_surface = render_context->render_double_buffer_draw;
+    if (draw_surface != NULL)
+    {
+        if (draw_surface->frame_start_time == 0)
+        {
+            draw_surface->frame_start_time = g_get_real_time();
+        }
+        if (draw_surface->type == WINDOW_SURFACE && draw_surface->gbuffer != NULL && draw_surface->gbuffer->is_writing == 0)
+        {
+            draw_surface->gbuffer->is_writing = 1;
+#ifdef _WIN32
+            ResetEvent(draw_surface->gbuffer->writing_ok_event);
+#else
+#endif
+        }
+    }
+
     Call_Para all_para[MAX_PARA_NUM];
 
     unsigned char ret_local_buf[1024 * 4];
@@ -47,19 +64,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     switch (call->id)
     {
 
-        /******* file '1-1' *******/
-
     case FUNID_glClientWaitSync:
 
     {
 
-        /* readline: "GLenum glClientWaitSync GLsync sync, GLbitfield flags, GLuint64 timeout" */
-        /* func name: "glClientWaitSync" */
-        /* args: [{'type': 'GLsync', 'name': 'sync', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'flags', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint64', 'name': 'timeout', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "GLenum" */
-        /* type: "110" */
-
-        /* Define variables */
         GLsync sync;
         GLbitfield flags;
         GLuint64 timeout;
@@ -150,13 +158,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glTestInt1 GLint a, GLuint b" */
-        /* func name: "glTestInt1" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint a;
         GLuint b;
 
@@ -240,13 +241,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLuint glTestInt2 GLint a, GLuint b" */
-        /* func name: "glTestInt2" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLuint" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint a;
         GLuint b;
 
@@ -330,13 +324,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint64 glTestInt3 GLint64 a, GLuint64 b" */
-        /* func name: "glTestInt3" */
-        /* args: [{'type': 'GLint64', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint64', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLint64" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint64 a;
         GLuint64 b;
 
@@ -420,13 +407,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLuint64 glTestInt4 GLint64 a, GLuint64 b" */
-        /* func name: "glTestInt4" */
-        /* args: [{'type': 'GLint64', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint64', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLuint64" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint64 a;
         GLuint64 b;
 
@@ -510,13 +490,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLfloat glTestInt5 GLint a, GLuint b" */
-        /* func name: "glTestInt5" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLfloat" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint a;
         GLuint b;
 
@@ -600,13 +573,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLdouble glTestInt6 GLint a, GLuint b" */
-        /* func name: "glTestInt6" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLdouble" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint a;
         GLuint b;
 
@@ -690,13 +656,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTestPointer1 GLint a, const GLint *b#sizeof(GLint)*10" */
-        /* func name: "glTestPointer1" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'b', 'ptr': 'in', 'ptr_len': 'sizeof(GLint)*10', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "110" */
-
-        /* Define variables */
         GLint a;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -764,14 +723,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTestPointer2 GLint a, const GLint *b#sizeof(GLint)*10, GLint *c#sizeof(GLint)*10" */
-        /* func name: "glTestPointer2" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'b', 'ptr': 'in', 'ptr_len': 'sizeof(GLint)*10', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'c', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)*10', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "110" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLint a;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -871,14 +822,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glTestPointer4 GLint a, const GLint *b#sizeof(GLint)*1000, GLint *c#sizeof(GLint)*1000" */
-        /* func name: "glTestPointer4" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'b', 'ptr': 'in', 'ptr_len': 'sizeof(GLint)*1000', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'c', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)*1000', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "110" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLint a;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -982,14 +925,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTestString GLint a, GLint count, const GLchar *const*strings#count|strlen(strings[i])+1, GLint buf_len, GLchar *char_buf#buf_len" */
-        /* func name: "glTestString" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'strings', 'ptr': 'in', 'ptr_len': 'count|strlen(strings[i])+1', 'loc': 2, 'ptr_ptr': True}, {'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'char_buf', 'ptr': 'out', 'ptr_len': 'buf_len', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "110" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLint a;
         GLint count;
         GLint buf_len;
@@ -1104,21 +1039,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '1-1', 12/11 functions*******/
-
-        /******* file '1-1-1' *******/
-
     case FUNID_glIsBuffer:
 
     {
 
-        /* readline: "GLboolean glIsBuffer GLuint buffer" */
-        /* func name: "glIsBuffer" */
-        /* args: [{'type': 'GLuint', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint buffer;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1133,13 +1057,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsEnabled GLenum cap" */
-        /* func name: "glIsEnabled" */
-        /* args: [{'type': 'GLenum', 'name': 'cap', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLenum cap;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1154,13 +1071,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsFramebuffer GLuint framebuffer" */
-        /* func name: "glIsFramebuffer" */
-        /* args: [{'type': 'GLuint', 'name': 'framebuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint framebuffer;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1175,13 +1085,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsProgram GLuint program" */
-        /* func name: "glIsProgram" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1196,13 +1099,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsRenderbuffer GLuint renderbuffer" */
-        /* func name: "glIsRenderbuffer" */
-        /* args: [{'type': 'GLuint', 'name': 'renderbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint renderbuffer;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1217,13 +1113,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsShader GLuint shader" */
-        /* func name: "glIsShader" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint shader;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1238,13 +1127,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsTexture GLuint texture" */
-        /* func name: "glIsTexture" */
-        /* args: [{'type': 'GLuint', 'name': 'texture', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint texture;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1259,13 +1141,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsQuery GLuint id" */
-        /* func name: "glIsQuery" */
-        /* args: [{'type': 'GLuint', 'name': 'id', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint id;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1280,13 +1155,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsVertexArray GLuint array" */
-        /* func name: "glIsVertexArray" */
-        /* args: [{'type': 'GLuint', 'name': 'array', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint array;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1301,13 +1169,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsSampler GLuint sampler" */
-        /* func name: "glIsSampler" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint sampler;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1322,13 +1183,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsTransformFeedback GLuint id" */
-        /* func name: "glIsTransformFeedback" */
-        /* args: [{'type': 'GLuint', 'name': 'id', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLuint id;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1343,13 +1197,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLboolean glIsSync GLsync sync" */
-        /* func name: "glIsSync" */
-        /* args: [{'type': 'GLsync', 'name': 'sync', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLboolean" */
-        /* type: "111" */
-
-        /* Define variables */
         GLsync sync;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1360,21 +1207,9 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '1-1-1', 13/23 functions*******/
-
-        /******* file '1-1-2' *******/
-
     case FUNID_glGetError:
 
     {
-
-        /* readline: "GLenum glGetError void" */
-        /* func name: "glGetError" */
-        /* args: [] */
-        /* ret: "GLenum" */
-        /* type: "112" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glGetError)
@@ -1424,13 +1259,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetString_special GLenum name, GLubyte *buffer#1024" */
-        /* func name: "glGetString_special" */
-        /* args: [{'type': 'GLenum', 'name': 'name', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLubyte*', 'name': 'buffer', 'ptr': 'out', 'ptr_len': '1024', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum name;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1509,13 +1337,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetStringi_special GLenum name, GLuint index, GLubyte *buffer#1024" */
-        /* func name: "glGetStringi_special" */
-        /* args: [{'type': 'GLenum', 'name': 'name', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLubyte*', 'name': 'buffer', 'ptr': 'out', 'ptr_len': '1024', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum name;
         GLuint index;
 
@@ -1598,13 +1419,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLenum glCheckFramebufferStatus GLenum target @{if(target!=GL_DRAW_FRAMEBUFFER&&target!= GL_READ_FRAMEBUFFER&&target!=GL_FRAMEBUFFER){set_gl_error(context,GL_INVALID_ENUM);return 0;}}" */
-        /* func name: "glCheckFramebufferStatus" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "GLenum" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -1684,15 +1498,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLbitfield glQueryMatrixxOES GLfixed *mantissa#sizeof(GLint)*16, GLint *exponent#sizeof(GLint)*16" */
-        /* func name: "glQueryMatrixxOES" */
-        /* args: [{'type': 'GLfixed*', 'name': 'mantissa', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)*16', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'exponent', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)*16', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLbitfield" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
-
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glQueryMatrixxOES)
         {
@@ -1747,13 +1552,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetFramebufferAttachmentParameteriv GLenum target, GLenum attachment, GLenum pname, GLint *params#sizeof(GLint)" */
-        /* func name: "glGetFramebufferAttachmentParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'attachment', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum attachment;
         GLenum pname;
@@ -1840,14 +1638,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramInfoLog GLuint program, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLchar *infoLog#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetProgramInfoLog" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'infoLog', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLsizei bufSize;
 
@@ -1933,13 +1723,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetRenderbufferParameteriv GLenum target, GLenum pname, GLint *params#sizeof(GLint)" */
-        /* func name: "glGetRenderbufferParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -2022,14 +1805,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetShaderInfoLog GLuint shader, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLchar *infoLog#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetShaderInfoLog" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'infoLog', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint shader;
         GLsizei bufSize;
 
@@ -2115,14 +1890,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetShaderPrecisionFormat GLenum shadertype, GLenum precisiontype, GLint *range#2*sizeof(GLint), GLint *precision#sizeof(GLint)" */
-        /* func name: "glGetShaderPrecisionFormat" */
-        /* args: [{'type': 'GLenum', 'name': 'shadertype', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'precisiontype', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'range', 'ptr': 'out', 'ptr_len': '2*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'precision', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLenum shadertype;
         GLenum precisiontype;
 
@@ -2208,14 +1975,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetShaderSource GLuint shader, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLchar *source#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetShaderSource" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'source', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint shader;
         GLsizei bufSize;
 
@@ -2301,13 +2060,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexParameterfv GLenum target, GLenum pname, GLfloat *params#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glGetTexParameterfv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -2375,24 +2127,34 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
-        if (target == GL_TEXTURE_EXTERNAL_OES)
+        if (host_opengl_version < 45 || DSA_enable == 0)
         {
-            if (opengl_context->current_active_texture != 0)
+            if (target == GL_TEXTURE_EXTERNAL_OES)
             {
-                glActiveTexture(GL_TEXTURE0);
+                Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                }
+                glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
+                glGetTexParameterfv(GL_TEXTURE_2D, pname, params);
+                glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
+                }
             }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
-            glGetTexParameterfv(GL_TEXTURE_2D, pname, params);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
+            else
             {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+                glGetTexParameterfv(target, pname, params);
             }
         }
         else
         {
-            glGetTexParameterfv(target, pname, params);
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glGetTextureParameterfv(bind_texture, pname, params);
         }
+
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
         if (out_buf_len > MAX_OUT_BUF_LEN)
@@ -2406,13 +2168,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexParameteriv GLenum target, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetTexParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -2480,23 +2235,33 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
-        if (target == GL_TEXTURE_EXTERNAL_OES)
+        if (host_opengl_version < 45 || DSA_enable == 0)
         {
-            if (opengl_context->current_active_texture != 0)
+            if (target == GL_TEXTURE_EXTERNAL_OES)
             {
-                glActiveTexture(GL_TEXTURE0);
+
+                Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                }
+                glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
+                glGetTexParameteriv(GL_TEXTURE_2D, pname, params);
+                glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
+                }
             }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
-            glGetTexParameteriv(GL_TEXTURE_2D, pname, params);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
+            else
             {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+                glGetTexParameteriv(target, pname, params);
             }
         }
         else
         {
-            glGetTexParameteriv(target, pname, params);
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glGetTextureParameteriv(bind_texture, pname, params);
         }
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
@@ -2512,13 +2277,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetQueryiv GLenum target, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetQueryiv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -2601,13 +2359,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetQueryObjectuiv GLuint id, GLenum pname, GLuint *params#gl_pname_size(pname)*sizeof(GLuint)" */
-        /* func name: "glGetQueryObjectuiv" */
-        /* args: [{'type': 'GLuint', 'name': 'id', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLuint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint id;
         GLenum pname;
 
@@ -2690,14 +2441,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTransformFeedbackVarying GLuint program, GLuint index, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLsizei *size#sizeof(GLsizei), GLenum *type#sizeof(GLenum), GLchar *name#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetTransformFeedbackVarying" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'size', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLenum*', 'name': 'type', 'ptr': 'out', 'ptr_len': 'sizeof(GLenum)', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'name', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLuint index;
         GLsizei bufSize;
@@ -2793,14 +2536,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetActiveUniformsiv GLuint program, GLsizei uniformCount, const GLuint *uniformIndices#uniformCount*sizeof(GLuint), GLenum pname, GLint *params#uniformCount*sizeof(GLint)" */
-        /* func name: "glGetActiveUniformsiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'uniformCount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'uniformIndices', 'ptr': 'in', 'ptr_len': 'uniformCount*sizeof(GLuint)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'uniformCount*sizeof(GLint)', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLsizei uniformCount;
         GLenum pname;
@@ -2908,13 +2643,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetActiveUniformBlockiv GLuint program, GLuint uniformBlockIndex, GLenum pname, GLint *params#gl_get_uniform_block_para_size(context,program,uniformBlockIndex,pname)*sizeof(GLint)" */
-        /* func name: "glGetActiveUniformBlockiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'uniformBlockIndex', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_get_uniform_block_para_size(context,program,uniformBlockIndex,pname)*sizeof(GLint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLuint uniformBlockIndex;
         GLenum pname;
@@ -3000,14 +2728,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetActiveUniformBlockName GLuint program, GLuint uniformBlockIndex, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLchar *uniformBlockName#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetActiveUniformBlockName" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'uniformBlockIndex', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'uniformBlockName', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLuint uniformBlockIndex;
         GLsizei bufSize;
@@ -3097,13 +2817,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetSamplerParameteriv GLuint sampler, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetSamplerParameteriv" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint sampler;
         GLenum pname;
 
@@ -3186,13 +2899,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetSamplerParameterfv GLuint sampler, GLenum pname, GLfloat *params#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glGetSamplerParameterfv" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint sampler;
         GLenum pname;
 
@@ -3275,14 +2981,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramBinary GLuint program, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLenum *binaryFormat#sizeof(GLenum), void *binary#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetProgramBinary" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLenum*', 'name': 'binaryFormat', 'ptr': 'out', 'ptr_len': 'sizeof(GLenum)', 'loc': 3, 'ptr_ptr': False}, {'type': 'void*', 'name': 'binary', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLsizei bufSize;
 
@@ -3372,13 +3070,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetInternalformativ GLenum target, GLenum internalformat, GLenum pname, GLsizei count, GLint *params#count*sizeof(GLint)" */
-        /* func name: "glGetInternalformativ" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'count*sizeof(GLint)', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum internalformat;
         GLenum pname;
@@ -3469,13 +3160,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetClipPlanexOES GLenum plane, GLfixed *equation#4*sizeof(GLfixed)" */
-        /* func name: "glGetClipPlanexOES" */
-        /* args: [{'type': 'GLenum', 'name': 'plane', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'equation', 'ptr': 'out', 'ptr_len': '4*sizeof(GLfixed)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum plane;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -3554,13 +3238,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetFixedvOES GLenum pname, GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glGetFixedvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -3639,13 +3316,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexEnvxvOES GLenum target, GLenum pname, GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glGetTexEnvxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -3728,13 +3398,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexParameterxvOES GLenum target, GLenum pname, GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glGetTexParameterxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -3802,18 +3465,26 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
+        if (host_opengl_version < 45 || DSA_enable == 0)
+        {
+        }
+        else
+        {
+            texture_binding_status_sync(opengl_context, target);
+        }
         if (target == GL_TEXTURE_EXTERNAL_OES)
         {
-            if (opengl_context->current_active_texture != 0)
+            Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+            if (texture_status->host_current_active_texture != 0)
             {
                 glActiveTexture(GL_TEXTURE0);
             }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
+            glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
             glGetTexParameterxvOES(GL_TEXTURE_2D, pname, params);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
+            glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+            if (texture_status->host_current_active_texture != 0)
             {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
+                glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
             }
         }
         else
@@ -3833,13 +3504,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetLightxvOES GLenum light, GLenum pname, GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glGetLightxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'light', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum light;
         GLenum pname;
 
@@ -3922,13 +3586,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetMaterialxvOES GLenum face, GLenum pname, GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glGetMaterialxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'face', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum face;
         GLenum pname;
 
@@ -4011,13 +3668,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexGenxvOES GLenum coord, GLenum pname, GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glGetTexGenxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'coord', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum coord;
         GLenum pname;
 
@@ -4100,13 +3750,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetFramebufferParameteriv GLenum target, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetFramebufferParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -4189,13 +3832,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramInterfaceiv GLuint program, GLenum programInterface, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetProgramInterfaceiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'programInterface', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLenum programInterface;
         GLenum pname;
@@ -4282,14 +3918,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramResourceName GLuint program, GLenum programInterface, GLuint index, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLchar *name#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetProgramResourceName" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'programInterface', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'name', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLenum programInterface;
         GLuint index;
@@ -4383,14 +4011,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramResourceiv GLuint program, GLenum programInterface, GLuint index, GLsizei propCount, const GLenum *props#propCount*sizeof(GLenum), GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLint *params#bufSize*sizeof(GLint) @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetProgramResourceiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'programInterface', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'propCount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLenum*', 'name': 'props', 'ptr': 'in', 'ptr_len': 'propCount*sizeof(GLenum)', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'bufSize*sizeof(GLint)', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLenum programInterface;
         GLuint index;
@@ -4509,13 +4129,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramPipelineiv GLuint pipeline, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetProgramPipelineiv" */
-        /* args: [{'type': 'GLuint', 'name': 'pipeline', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint pipeline;
         GLenum pname;
 
@@ -4598,14 +4211,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramPipelineInfoLog GLuint pipeline, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLchar *infoLog#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetProgramPipelineInfoLog" */
-        /* args: [{'type': 'GLuint', 'name': 'pipeline', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'infoLog', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint pipeline;
         GLsizei bufSize;
 
@@ -4691,13 +4296,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetMultisamplefv GLenum pname, GLuint index, GLfloat *val#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glGetMultisamplefv" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'val', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum pname;
         GLuint index;
 
@@ -4780,13 +4378,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexLevelParameteriv GLenum target, GLint level, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetTexLevelParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum pname;
@@ -4858,8 +4449,15 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
-        glGetTexLevelParameteriv(target, level, pname, params);
-
+        if (host_opengl_version < 45 || DSA_enable == 0)
+        {
+            glGetTexLevelParameteriv(target, level, pname, params);
+        }
+        else
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glGetTextureLevelParameteriv(bind_texture, level, pname, params);
+        }
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
         if (out_buf_len > MAX_OUT_BUF_LEN)
@@ -4873,13 +4471,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetTexLevelParameterfv GLenum target, GLint level, GLenum pname, GLfloat *params#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glGetTexLevelParameterfv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum pname;
@@ -4951,7 +4542,15 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
-        glGetTexLevelParameterfv(target, level, pname, params);
+        if (host_opengl_version < 45 || DSA_enable == 0)
+        {
+            glGetTexLevelParameterfv(target, level, pname, params);
+        }
+        else
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glGetTextureLevelParameterfv(bind_texture, level, pname, params);
+        }
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
@@ -4966,14 +4565,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetSynciv GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLint *values#bufSize*sizeof(GLint) @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetSynciv" */
-        /* args: [{'type': 'GLsync', 'name': 'sync', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'values', 'ptr': 'out', 'ptr_len': 'bufSize*sizeof(GLint)', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLsync sync;
         GLenum pname;
         GLsizei bufSize;
@@ -5063,13 +4654,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glGetAttribLocation GLuint program, const GLchar *name#strlen(name)+1" */
-        /* func name: "glGetAttribLocation" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'name', 'ptr': 'in', 'ptr_len': 'strlen(name)+1', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -5170,13 +4754,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glGetUniformLocation GLuint program, const GLchar *name#strlen(name)+1" */
-        /* func name: "glGetUniformLocation" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'name', 'ptr': 'in', 'ptr_len': 'strlen(name)+1', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -5277,13 +4854,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glGetFragDataLocation GLuint program, const GLchar *name#strlen(name)+1" */
-        /* func name: "glGetFragDataLocation" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'name', 'ptr': 'in', 'ptr_len': 'strlen(name)+1', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -5384,13 +4954,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLuint glGetUniformBlockIndex GLuint program, const GLchar *uniformBlockName#strlen(uniformBlockName)+1" */
-        /* func name: "glGetUniformBlockIndex" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'uniformBlockName', 'ptr': 'in', 'ptr_len': 'strlen(uniformBlockName)+1', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "GLuint" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -5491,13 +5054,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLuint glGetProgramResourceIndex GLuint program, GLenum programInterface, const GLchar *name#strlen(name)+1" */
-        /* func name: "glGetProgramResourceIndex" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'programInterface', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'name', 'ptr': 'in', 'ptr_len': 'strlen(name)+1', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "GLuint" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLenum programInterface;
 
@@ -5602,13 +5158,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glGetProgramResourceLocation GLuint program, GLenum programInterface, const GLchar *name#strlen(name)+1" */
-        /* func name: "glGetProgramResourceLocation" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'programInterface', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'name', 'ptr': 'in', 'ptr_len': 'strlen(name)+1', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLenum programInterface;
 
@@ -5713,14 +5262,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetActiveAttrib GLuint program, GLuint index, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLint *size#sizeof(GLint), GLenum *type#sizeof(GLenum), GLchar *name#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetActiveAttrib" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'size', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLenum*', 'name': 'type', 'ptr': 'out', 'ptr_len': 'sizeof(GLenum)', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'name', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLuint index;
         GLsizei bufSize;
@@ -5816,14 +5357,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetActiveUniform GLuint program, GLuint index, GLsizei bufSize, GLsizei *length#sizeof(GLsizei), GLint *size#sizeof(GLint), GLenum *type#sizeof(GLenum), GLchar *name#bufSize @{if(bufSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGetActiveUniform" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'bufSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'length', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'size', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLenum*', 'name': 'type', 'ptr': 'out', 'ptr_len': 'sizeof(GLenum)', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLchar*', 'name': 'name', 'ptr': 'out', 'ptr_len': 'bufSize', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLuint index;
         GLsizei bufSize;
@@ -5919,14 +5452,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetAttachedShaders GLuint program, GLsizei maxCount, GLsizei *count#sizeof(GLsizei), GLuint *shaders#maxCount*sizeof(GLuint)" */
-        /* func name: "glGetAttachedShaders" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'maxCount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei*', 'name': 'count', 'ptr': 'out', 'ptr_len': 'sizeof(GLsizei)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint*', 'name': 'shaders', 'ptr': 'out', 'ptr_len': 'maxCount*sizeof(GLuint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLsizei maxCount;
 
@@ -6012,13 +5537,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetProgramiv GLuint program, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetProgramiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLenum pname;
 
@@ -6101,13 +5619,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetShaderiv GLuint shader, GLenum pname, GLint *params#sizeof(GLint)" */
-        /* func name: "glGetShaderiv" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint shader;
         GLenum pname;
 
@@ -6190,13 +5701,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetUniformfv GLuint program, GLint location, GLfloat *params#gl_get_program_uniform_size(context,program,location)" */
-        /* func name: "glGetUniformfv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_get_program_uniform_size(context,program,location)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
 
@@ -6278,13 +5782,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetUniformiv GLuint program, GLint location, GLint *params#gl_get_program_uniform_size(context,program,location)" */
-        /* func name: "glGetUniformiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_get_program_uniform_size(context,program,location)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
 
@@ -6366,13 +5863,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetUniformuiv GLuint program, GLint location, GLuint *params#gl_get_program_uniform_size(context,program,location)" */
-        /* func name: "glGetUniformuiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_get_program_uniform_size(context,program,location)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
 
@@ -6454,14 +5944,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetUniformIndices GLuint program, GLsizei uniformCount, const GLchar *const*uniformNames#uniformCount|strlen(uniformNames[i])+1, GLuint *uniformIndices#uniformCount*sizeof(GLuint)" */
-        /* func name: "glGetUniformIndices" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'uniformCount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'uniformNames', 'ptr': 'in', 'ptr_len': 'uniformCount|strlen(uniformNames[i])+1', 'loc': 2, 'ptr_ptr': True}, {'type': 'GLuint*', 'name': 'uniformIndices', 'ptr': 'out', 'ptr_len': 'uniformCount*sizeof(GLuint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint program;
         GLsizei uniformCount;
 
@@ -6576,13 +6058,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetVertexAttribfv_origin GLuint index, GLenum pname, GLfloat *params#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glGetVertexAttribfv_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint index;
         GLenum pname;
 
@@ -6665,13 +6140,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetVertexAttribiv_origin GLuint index, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetVertexAttribiv_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint index;
         GLenum pname;
 
@@ -6754,13 +6222,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetVertexAttribIiv_origin GLuint index, GLenum pname, GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetVertexAttribIiv_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint index;
         GLenum pname;
 
@@ -6843,13 +6304,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetVertexAttribIuiv_origin GLuint index, GLenum pname, GLuint *params#gl_pname_size(pname)*sizeof(GLuint)" */
-        /* func name: "glGetVertexAttribIuiv_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLuint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLuint index;
         GLenum pname;
 
@@ -6932,13 +6386,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetBufferParameteriv GLenum target, GLenum pname, GLint *params#sizeof(GLint)" */
-        /* func name: "glGetBufferParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -7006,7 +6453,15 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
-        glGetBufferParameteriv(target, pname, params);
+        if (host_opengl_version < 45 || DSA_enable == 0)
+        {
+            glGetBufferParameteriv(target, pname, params);
+        }
+        else
+        {
+            GLuint bind_buffer = get_guest_binding_buffer(opengl_context, target);
+            glGetNamedBufferParameteriv(bind_buffer, pname, params);
+        }
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
@@ -7021,13 +6476,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetBufferParameteri64v GLenum target, GLenum pname, GLint64 *params#gl_pname_size(pname)*sizeof(GLint64)" */
-        /* func name: "glGetBufferParameteri64v" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint64*', 'name': 'params', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint64)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -7095,7 +6543,15 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
-        glGetBufferParameteri64v(target, pname, params);
+        if (host_opengl_version < 45 || DSA_enable == 0)
+        {
+            glGetBufferParameteri64v(target, pname, params);
+        }
+        else
+        {
+            GLuint bind_buffer = get_guest_binding_buffer(opengl_context, target);
+            glGetNamedBufferParameteri64v(bind_buffer, pname, params);
+        }
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
 
@@ -7110,13 +6566,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetBooleanv GLenum pname, GLboolean *data#gl_pname_size(pname)*sizeof(GLboolean)" */
-        /* func name: "glGetBooleanv" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLboolean*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLboolean)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -7195,13 +6644,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetBooleani_v GLenum target, GLuint index, GLboolean *data#sizeof(GLboolean)" */
-        /* func name: "glGetBooleani_v" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'sizeof(GLboolean)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLuint index;
 
@@ -7269,6 +6711,11 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            printf("@todo! glGetBooleani_v target %x index %x with dsa\n", target, index);
+        }
+
         glGetBooleani_v(target, index, data);
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
@@ -7284,13 +6731,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetFloatv GLenum pname, GLfloat *data#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glGetFloatv" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -7369,13 +6809,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetIntegerv GLenum pname, GLint *data#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glGetIntegerv" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -7454,13 +6887,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetIntegeri_v GLenum target, GLuint index, GLint *data#sizeof(GLint)" */
-        /* func name: "glGetIntegeri_v" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLuint index;
 
@@ -7528,6 +6954,11 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             break;
         }
 
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            printf("@todo! glGetIntegeri_v target %x index %x with dsa\n", target, index);
+        }
+
         glGetIntegeri_v(target, index, data);
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
@@ -7543,13 +6974,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetInteger64v GLenum pname, GLint64 *data#gl_pname_size(pname)*sizeof(GLint64)" */
-        /* func name: "glGetInteger64v" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint64*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint64)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -7628,13 +7052,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGetInteger64i_v GLenum target, GLuint index, GLint64 *data#sizeof(GLint64)" */
-        /* func name: "glGetInteger64i_v" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint64*', 'name': 'data', 'ptr': 'out', 'ptr_len': 'sizeof(GLint64)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "112" */
-
-        /* Define variables */
         GLenum target;
         GLuint index;
 
@@ -7701,7 +7118,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             }
             break;
         }
-
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            printf("@todo! glGetInteger64i_v target %x index %x with dsa\n", target, index);
+        }
         glGetInteger64i_v(target, index, data);
 
         guest_read(all_para[1].data, ret_buf, 0, out_buf_len);
@@ -7713,21 +7133,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '1-1-2', 69/91 functions*******/
-
-        /******* file '1-2' *******/
-
     case FUNID_glMapBufferRange_read:
 
     {
 
-        /* readline: "glMapBufferRange_read GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access, void *mem_buf#length" */
-        /* func name: "glMapBufferRange_read" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'access', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'void*', 'name': 'mem_buf', 'ptr': 'out', 'ptr_len': 'length', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "120" */
-
-        /* Define variables */
         GLenum target;
         GLintptr offset;
         GLsizeiptr length;
@@ -7788,13 +7197,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glReadPixels_without_bound GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLint buf_len, void *pixels#buf_len" */
-        /* func name: "glReadPixels_without_bound" */
-        /* args: [{'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'void*', 'name': 'pixels', 'ptr': 'out', 'ptr_len': 'buf_len', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "120" */
-
-        /* Define variables */
         GLint x;
         GLint y;
         GLsizei width;
@@ -7867,14 +7269,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "GLint glTestPointer3 GLint a, const GLint *b#sizeof(GLint)*a, GLint *c#sizeof(GLint)*a" */
-        /* func name: "glTestPointer3" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'b', 'ptr': 'in', 'ptr_len': 'sizeof(GLint)*a', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint*', 'name': 'c', 'ptr': 'out', 'ptr_len': 'sizeof(GLint)*a', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "GLint" */
-        /* type: "120" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLint a;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -7923,21 +7317,9 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '1-2', 4/94 functions*******/
-
-        /******* file '2-1' *******/
-
     case FUNID_glFlush:
 
     {
-
-        /* readline: "glFlush void" */
-        /* func name: "glFlush" */
-        /* args: [] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glFlush)
@@ -7953,14 +7335,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFinish void" */
-        /* func name: "glFinish" */
-        /* args: [] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
-
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glFinish)
         {
@@ -7975,13 +7349,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBeginQuery GLenum target, GLuint id" */
-        /* func name: "glBeginQuery" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'id', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLuint id;
 
@@ -8023,7 +7390,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         id = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8037,13 +7404,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glEndQuery GLenum target" */
-        /* func name: "glEndQuery" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -8081,7 +7441,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         target = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8095,13 +7455,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glViewport GLint x, GLint y, GLsizei width, GLsizei height" */
-        /* func name: "glViewport" */
-        /* args: [{'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLint x;
         GLint y;
         GLsizei width;
@@ -8151,7 +7504,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8165,13 +7518,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexStorage2D GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height" */
-        /* func name: "glTexStorage2D" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'levels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLsizei levels;
         GLenum internalformat;
@@ -8225,13 +7571,21 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glTexStorage2D(target, levels, internalformat, width, height);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureStorage2D(bind_texture, levels, internalformat, width, height);
+        }
+        else
+        {
+            glTexStorage2D(target, levels, internalformat, width, height);
+        }
     }
     break;
 
@@ -8239,13 +7593,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexStorage3D GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth" */
-        /* func name: "glTexStorage3D" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'levels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLsizei levels;
         GLenum internalformat;
@@ -8303,13 +7650,21 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         depth = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glTexStorage3D(target, levels, internalformat, width, height, depth);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureStorage3D(bind_texture, levels, internalformat, width, height, depth);
+        }
+        else
+        {
+            glTexStorage3D(target, levels, internalformat, width, height, depth);
+        }
     }
     break;
 
@@ -8317,13 +7672,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexImage2D_with_bound GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, GLintptr pixels" */
-        /* func name: "glTexImage2D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pixels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint internalformat;
@@ -8393,7 +7741,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pixels = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8407,13 +7755,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexSubImage2D_with_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, GLintptr pixels" */
-        /* func name: "glTexSubImage2D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pixels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -8483,7 +7824,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pixels = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8497,13 +7838,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexImage3D_with_bound GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, GLintptr pixels" */
-        /* func name: "glTexImage3D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pixels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint internalformat;
@@ -8577,7 +7911,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pixels = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8591,13 +7925,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexSubImage3D_with_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLintptr pixels" */
-        /* func name: "glTexSubImage3D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'zoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pixels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 10, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -8675,7 +8002,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pixels = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8689,13 +8016,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glReadPixels_with_bound GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLintptr pixels" */
-        /* func name: "glReadPixels_with_bound" */
-        /* args: [{'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pixels', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLint x;
         GLint y;
         GLsizei width;
@@ -8757,7 +8077,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pixels = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8771,13 +8091,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexImage2D_with_bound GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, GLintptr data @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexImage2D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'data', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum internalformat;
@@ -8843,7 +8156,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         data = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8857,13 +8170,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexSubImage2D_with_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, GLintptr data  @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexSubImage2D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'data', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -8933,7 +8239,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         data = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -8947,13 +8253,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexImage3D_with_bound GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, GLintptr data @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexImage3D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'data', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum internalformat;
@@ -9023,7 +8322,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         data = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9037,13 +8336,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexSubImage3D_with_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, GLintptr data" */
-        /* func name: "glCompressedTexSubImage3D_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'zoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'data', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 10, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -9121,7 +8413,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         data = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9135,13 +8427,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCopyTexImage2D GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border" */
-        /* func name: "glCopyTexImage2D" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum internalformat;
@@ -9207,13 +8492,25 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         border = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            if (glCopyTextureImage2DEXT == NULL)
+            {
+                printf("error! glCopyTextureImage2DEXT is NULL!\n");
+            }
+            glCopyTextureImage2DEXT(bind_texture, target, level, internalformat, x, y, width, height, border);
+        }
+        else
+        {
+            glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+        }
     }
     break;
 
@@ -9221,13 +8518,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCopyTexSubImage2D GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height" */
-        /* func name: "glCopyTexSubImage2D" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -9293,13 +8583,21 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glCopyTextureSubImage2D(bind_texture, level, xoffset, yoffset, x, y, width, height);
+        }
+        else
+        {
+            glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+        }
     }
     break;
 
@@ -9307,13 +8605,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCopyTexSubImage3D GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height" */
-        /* func name: "glCopyTexSubImage3D" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'zoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -9383,13 +8674,21 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glCopyTextureSubImage3D(bind_texture, level, xoffset, yoffset, zoffset, x, y, width, height);
+        }
+        else
+        {
+            glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+        }
     }
     break;
 
@@ -9397,13 +8696,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribPointer_with_bound GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLintptr pointer" */
-        /* func name: "glVertexAttribPointer_with_bound" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'normalized', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'stride', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pointer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLuint index;
         GLint size;
         GLenum type;
@@ -9461,7 +8753,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pointer = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9475,13 +8767,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribPointer_offset GLuint index, GLuint size, GLenum type, GLboolean normalized, GLsizei stride, GLuint index_father, GLintptr offset" */
-        /* func name: "glVertexAttribPointer_offset" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'normalized', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'stride', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index_father', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLuint index;
         GLuint size;
         GLenum type;
@@ -9543,7 +8828,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         offset = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9557,13 +8842,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glMapBufferRange_write GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access" */
-        /* func name: "glMapBufferRange_write" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'access', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLintptr offset;
         GLsizeiptr length;
@@ -9613,7 +8891,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         access = *(GLbitfield *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9627,13 +8905,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUnmapBuffer_special GLenum target" */
-        /* func name: "glUnmapBuffer_special" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -9671,7 +8942,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         target = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9685,13 +8956,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glWaitSync GLsync sync, GLbitfield flags, GLuint64 timeout" */
-        /* func name: "glWaitSync" */
-        /* args: [{'type': 'GLsync', 'name': 'sync', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'flags', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint64', 'name': 'timeout', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLsync sync;
         GLbitfield flags;
         GLuint64 timeout;
@@ -9737,7 +9001,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         timeout = *(GLuint64 *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9752,14 +9016,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glShaderBinary GLsizei count, const GLuint *shaders#count*sizeof(GLuint), GLenum binaryFormat, const void *binary#length, GLsizei length" */
-        /* func name: "glShaderBinary" */
-        /* args: [{'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'shaders', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'binaryFormat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'binary', 'ptr': 'in', 'ptr_len': 'length', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLsizei count;
         GLenum binaryFormat;
         GLsizei length;
@@ -9811,7 +9067,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const void *binary = (const void *)(temp + temp_loc);
         temp_loc += length;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9825,13 +9081,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramBinary GLuint program, GLenum binaryFormat, const void *binary#length, GLsizei length, int *program_data_len" */
-        /* func name: "glProgramBinary" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'binaryFormat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'binary', 'ptr': 'in', 'ptr_len': 'length', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLuint program;
         GLenum binaryFormat;
         GLsizei length;
@@ -9881,7 +9130,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         const void *binary = (const void *)(temp + temp_loc);
         temp_loc += length;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -9911,13 +9159,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawBuffers GLsizei n, const GLenum *bufs#n*sizeof(GLenum)" */
-        /* func name: "glDrawBuffers" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLenum*', 'name': 'bufs', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLenum)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -9958,7 +9199,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLenum *bufs = (const GLenum *)(temp + temp_loc);
         temp_loc += n * sizeof(GLenum);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -9972,13 +9213,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawArrays_origin GLenum mode, GLint first, GLsizei count" */
-        /* func name: "glDrawArrays_origin" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'first', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum mode;
         GLint first;
         GLsizei count;
@@ -10024,7 +9258,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         count = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10038,13 +9272,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawArraysInstanced_origin GLenum mode, GLint first, GLsizei count, GLsizei instancecount" */
-        /* func name: "glDrawArraysInstanced_origin" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'first', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'instancecount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum mode;
         GLint first;
         GLsizei count;
@@ -10094,7 +9321,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         instancecount = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10108,13 +9335,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawElementsInstanced_with_bound GLenum mode, GLsizei count, GLenum type, GLsizeiptr indices, GLsizei instancecount" */
-        /* func name: "glDrawElementsInstanced_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'indices', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'instancecount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum mode;
         GLsizei count;
         GLenum type;
@@ -10168,7 +9388,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         instancecount = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10182,13 +9402,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawElements_with_bound GLenum mode, GLsizei count, GLenum type, GLsizeiptr indices" */
-        /* func name: "glDrawElements_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'indices', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum mode;
         GLsizei count;
         GLenum type;
@@ -10238,7 +9451,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         indices = *(GLsizeiptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10252,13 +9465,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawRangeElements_with_bound GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, GLsizeiptr indices" */
-        /* func name: "glDrawRangeElements_with_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'start', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'end', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'indices', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum mode;
         GLuint start;
         GLuint end;
@@ -10316,7 +9522,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         indices = *(GLsizeiptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10330,13 +9536,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTestIntAsyn GLint a, GLuint b, GLfloat c, GLdouble d" */
-        /* func name: "glTestIntAsyn" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'c', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLdouble', 'name': 'd', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLint a;
         GLuint b;
         GLfloat c;
@@ -10386,7 +9585,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         d = *(GLdouble *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10400,13 +9599,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPrintfAsyn GLint a, GLuint size, GLdouble c, const GLchar *out_string#strlen(out_string)+1" */
-        /* func name: "glPrintfAsyn" */
-        /* args: [{'type': 'GLint', 'name': 'a', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLdouble', 'name': 'c', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'out_string', 'ptr': 'in', 'ptr_len': 'strlen(out_string)+1', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLint a;
         GLuint size;
         GLdouble c;
@@ -10455,7 +9647,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLchar *out_string = (const GLchar *)(temp + temp_loc);
         temp_loc += strlen(out_string) + 1;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10469,13 +9661,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glEGLImageTargetTexture2DOES GLenum target, GLeglImageOES imageSize" */
-        /* func name: "glEGLImageTargetTexture2DOES" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLeglImageOES', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLeglImageOES imageSize;
 
@@ -10517,7 +9702,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         imageSize = *(GLeglImageOES *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10531,13 +9716,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glEGLImageTargetRenderbufferStorageOES GLenum target, GLeglImageOES image" */
-        /* func name: "glEGLImageTargetRenderbufferStorageOES" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLeglImageOES', 'name': 'image', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "210" */
-
-        /* Define variables */
         GLenum target;
         GLeglImageOES image;
 
@@ -10579,7 +9757,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         image = *(GLeglImageOES *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10589,21 +9767,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '2-1', 37/130 functions*******/
-
-        /******* file '2-1-1' *******/
-
     case FUNID_glGenBuffers:
 
     {
 
-        /* readline: "glGenBuffers GLsizei n, const GLuint *buffers#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenBuffers" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'buffers', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -10644,7 +9811,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *buffers = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10658,13 +9825,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenRenderbuffers GLsizei n, const GLuint *renderbuffers#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenRenderbuffers" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'renderbuffers', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -10705,7 +9865,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *renderbuffers = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10719,13 +9879,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenTextures GLsizei n, const GLuint *textures#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenTextures" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'textures', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -10766,7 +9919,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *textures = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10780,13 +9933,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenSamplers GLsizei count, const GLuint *samplers#count*sizeof(GLuint) @{if(count<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenSamplers" */
-        /* args: [{'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'samplers', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei count;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -10827,7 +9973,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *samplers = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10841,13 +9987,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCreateProgram GLuint program" */
-        /* func name: "glCreateProgram" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -10885,7 +10024,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10899,13 +10038,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCreateShader GLenum type, GLuint shader @if(type!=GL_COMPUTE_SHADER&&type!=GL_VERTEX_SHADER&&type!=GL_FRAGMENT_SHADER){set_gl_error(context,GL_INVALID_ENUM);return 0;}" */
-        /* func name: "glCreateShader" */
-        /* args: [{'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLenum type;
         GLuint shader;
 
@@ -10947,7 +10079,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         shader = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -10961,13 +10093,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFenceSync GLenum condition, GLbitfield flags, GLsync sync" */
-        /* func name: "glFenceSync" */
-        /* args: [{'type': 'GLenum', 'name': 'condition', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'flags', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsync', 'name': 'sync', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLenum condition;
         GLbitfield flags;
         GLsync sync;
@@ -11013,7 +10138,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         sync = *(GLsync *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11027,13 +10152,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCreateShaderProgramv GLenum type, GLsizei count, const GLchar *const*strings#count|strlen(strings[i])+1, GLuint program @{if(type!=GL_COMPUTE_SHADER&&type!=GL_VERTEX_SHADER&&type!=GL_FRAGMENT_SHADER){set_gl_error(context,GL_INVALID_ENUM);return 0;}if(count<0){set_gl_error(context,GL_INVALID_VALUE);return 0;}}" */
-        /* func name: "glCreateShaderProgramv" */
-        /* args: [{'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'strings', 'ptr': 'in', 'ptr_len': 'count|strlen(strings[i])+1', 'loc': 2, 'ptr_ptr': True}, {'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLenum type;
         GLsizei count;
         GLuint program;
@@ -11087,7 +10205,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             strings[i] = (GLchar *)(temp + temp_loc);
             temp_loc += strlen(strings[i]) + 1;
         }
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11118,13 +10236,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenFramebuffers GLsizei n, const GLuint *framebuffers#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenFramebuffers" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'framebuffers', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11165,7 +10276,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *framebuffers = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11179,13 +10290,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenProgramPipelines GLsizei n, const GLuint *pipelines#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenProgramPipelines" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'pipelines', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11226,7 +10330,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *pipelines = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11240,13 +10344,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenTransformFeedbacks GLsizei n, const GLuint *ids#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenTransformFeedbacks" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'ids', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11287,7 +10384,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *ids = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11301,13 +10398,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenVertexArrays GLsizei n, const GLuint *arrays#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenVertexArrays" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'arrays', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11348,7 +10438,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *arrays = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11362,13 +10452,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenQueries GLsizei n, const GLuint *ids#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glGenQueries" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'ids', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11409,7 +10492,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *ids = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11423,13 +10506,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteBuffers_origin GLsizei n, const GLuint *buffers#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteBuffers_origin" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'buffers', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11470,7 +10546,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *buffers = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11484,13 +10560,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteRenderbuffers GLsizei n, const GLuint *renderbuffers#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteRenderbuffers" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'renderbuffers', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11531,7 +10600,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *renderbuffers = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11545,13 +10614,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteTextures GLsizei n, const GLuint *textures#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteTextures" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'textures', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11592,7 +10654,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *textures = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11606,13 +10668,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteSamplers GLsizei count, const GLuint *samplers#count*sizeof(GLuint) @{if(count<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteSamplers" */
-        /* args: [{'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'samplers', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei count;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11653,7 +10708,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *samplers = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11667,13 +10722,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteProgram_origin GLuint program" */
-        /* func name: "glDeleteProgram_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11711,7 +10759,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11725,13 +10773,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteShader GLuint shader" */
-        /* func name: "glDeleteShader" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLuint shader;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11769,7 +10810,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         shader = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11783,13 +10824,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteSync GLsync sync" */
-        /* func name: "glDeleteSync" */
-        /* args: [{'type': 'GLsync', 'name': 'sync', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsync sync;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11827,7 +10861,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         sync = *(GLsync *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11841,13 +10875,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteFramebuffers GLsizei n, const GLuint *framebuffers#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteFramebuffers" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'framebuffers', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11888,7 +10915,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *framebuffers = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11902,13 +10929,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteProgramPipelines GLsizei n, const GLuint *pipelines#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteProgramPipelines" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'pipelines', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -11949,7 +10969,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *pipelines = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -11963,13 +10983,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteTransformFeedbacks GLsizei n, const GLuint *ids#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteTransformFeedbacks" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'ids', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12010,7 +11023,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *ids = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12024,13 +11037,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteVertexArrays_origin GLsizei n, const GLuint *arrays#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteVertexArrays_origin" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'arrays', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12071,7 +11077,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *arrays = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12085,13 +11091,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDeleteQueries GLsizei n, const GLuint *ids#n*sizeof(GLuint) @{if(n<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glDeleteQueries" */
-        /* args: [{'type': 'GLsizei', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'ids', 'ptr': 'in', 'ptr_len': 'n*sizeof(GLuint)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "211" */
-
-        /* Define variables */
         GLsizei n;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12132,7 +11131,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *ids = (const GLuint *)(temp + temp_loc);
         temp_loc += n * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12142,21 +11141,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '2-1-1', 26/155 functions*******/
-
-        /******* file '2-1-2' *******/
-
     case FUNID_glLinkProgram_special:
 
     {
 
-        /* readline: "glLinkProgram_origin GLuint program int *program_data_len" */
-        /* func name: "glLinkProgram_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12195,7 +11183,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -12226,13 +11213,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPixelStorei_origin GLenum pname, GLint param" */
-        /* func name: "glPixelStorei_origin" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
         GLint param;
 
@@ -12274,7 +11254,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12288,13 +11268,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDisableVertexAttribArray_origin GLuint index" */
-        /* func name: "glDisableVertexAttribArray_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12332,7 +11305,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         index = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12346,13 +11319,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glEnableVertexAttribArray_origin GLuint index" */
-        /* func name: "glEnableVertexAttribArray_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12390,7 +11356,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         index = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12404,13 +11370,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glReadBuffer_special GLenum src" */
-        /* func name: "glReadBuffer_special" */
-        /* args: [{'type': 'GLenum', 'name': 'src', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum src;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12448,7 +11407,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         src = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12462,13 +11421,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribDivisor_origin GLuint index, GLuint divisor" */
-        /* func name: "glVertexAttribDivisor_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'divisor', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLuint divisor;
 
@@ -12510,7 +11462,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         divisor = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12524,14 +11476,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glShaderSource_origin GLuint shader, GLsizei count, const GLint *length#count*sizeof(GLint), const GLchar *const*string#count|length[i]" */
-        /* func name: "glShaderSource_origin" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'length', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'string', 'ptr': 'in', 'ptr_len': 'count|length[i]', 'loc': 3, 'ptr_ptr': True}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* TODO: More than one ptr, should check mannually */
-        /* Define variables */
         GLuint shader;
         GLsizei count;
 
@@ -12584,7 +11528,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             string[i] = (GLchar *)(temp + temp_loc);
             temp_loc += length[i];
         }
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12600,13 +11544,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribIPointer_with_bound GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr pointer" */
-        /* func name: "glVertexAttribIPointer_with_bound" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'stride', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'pointer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLint size;
         GLenum type;
@@ -12660,7 +11597,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pointer = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12674,13 +11611,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribIPointer_offset GLuint index, GLint size, GLenum type, GLsizei stride, GLuint index_father, GLintptr offset" */
-        /* func name: "glVertexAttribIPointer_offset" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'stride', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index_father', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLint size;
         GLenum type;
@@ -12738,7 +11668,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         offset = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12752,13 +11682,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindVertexArray_special GLuint array" */
-        /* func name: "glBindVertexArray_special" */
-        /* args: [{'type': 'GLuint', 'name': 'array', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint array;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12796,7 +11719,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         array = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12810,13 +11733,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindBuffer_origin GLenum target, GLuint buffer" */
-        /* func name: "glBindBuffer_origin" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint buffer;
 
@@ -12858,13 +11774,13 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         buffer = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
         express_printf("glbindbuffer target %x %d\n", target, buffer);
-        d_glBindBuffer_origin(opengl_context, target, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
+        d_glBindBuffer_special(opengl_context, target, buffer);
     }
     break;
 
@@ -12872,13 +11788,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBeginTransformFeedback GLenum primitiveMode" */
-        /* func name: "glBeginTransformFeedback" */
-        /* args: [{'type': 'GLenum', 'name': 'primitiveMode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum primitiveMode;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -12916,7 +11825,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         primitiveMode = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -12929,14 +11838,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     case FUNID_glEndTransformFeedback:
 
     {
-
-        /* readline: "glEndTransformFeedback void" */
-        /* func name: "glEndTransformFeedback" */
-        /* args: [] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glEndTransformFeedback)
@@ -12952,14 +11853,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPauseTransformFeedback void" */
-        /* func name: "glPauseTransformFeedback" */
-        /* args: [] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
-
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glPauseTransformFeedback)
         {
@@ -12973,14 +11866,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     case FUNID_glResumeTransformFeedback:
 
     {
-
-        /* readline: "glResumeTransformFeedback void" */
-        /* func name: "glResumeTransformFeedback" */
-        /* args: [] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glResumeTransformFeedback)
@@ -12996,13 +11881,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindBufferRange GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size" */
-        /* func name: "glBindBufferRange" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint index;
         GLuint buffer;
@@ -13056,13 +11934,14 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         size = *(GLsizeiptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
         express_printf("mapbufferrange glbindbufferRange target %x index %d buffer %d offset %lld size %lld end %lld\n", target, index, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size, offset + size);
-        glBindBufferRange(target, index, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size);
+
+        d_glBindBufferRange_special(opengl_context, target, index, buffer, offset, size);
     }
     break;
 
@@ -13070,13 +11949,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindBufferBase GLenum target, GLuint index, GLuint buffer" */
-        /* func name: "glBindBufferBase" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint index;
         GLuint buffer;
@@ -13122,13 +11994,13 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         buffer = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glBindBufferBase(target, index, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
+        d_glBindBufferBase_special(opengl_context, target, index, buffer);
     }
     break;
 
@@ -13136,13 +12008,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindTexture GLenum target, GLuint texture" */
-        /* func name: "glBindTexture" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'texture', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint texture;
 
@@ -13184,13 +12049,13 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         texture = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        d_glBindTexture_special(opengl_context, target, (GLuint)get_host_texture_id(opengl_context, (unsigned int)texture));
+        d_glBindTexture_special(opengl_context, target, texture);
     }
     break;
 
@@ -13198,13 +12063,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindRenderbuffer GLenum target, GLuint renderbuffer" */
-        /* func name: "glBindRenderbuffer" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'renderbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint renderbuffer;
 
@@ -13246,7 +12104,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         renderbuffer = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13260,13 +12118,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindSampler GLuint unit, GLuint sampler" */
-        /* func name: "glBindSampler" */
-        /* args: [{'type': 'GLuint', 'name': 'unit', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint unit;
         GLuint sampler;
 
@@ -13308,7 +12159,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         sampler = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13322,13 +12173,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindFramebuffer GLenum target, GLuint framebuffer" */
-        /* func name: "glBindFramebuffer" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'framebuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint framebuffer;
 
@@ -13370,7 +12214,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         framebuffer = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13384,13 +12228,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindProgramPipeline GLuint pipeline" */
-        /* func name: "glBindProgramPipeline" */
-        /* args: [{'type': 'GLuint', 'name': 'pipeline', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint pipeline;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -13428,7 +12265,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         pipeline = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13442,13 +12279,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindTransformFeedback GLenum target, GLuint feedback_id" */
-        /* func name: "glBindTransformFeedback" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'feedback_id', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLuint feedback_id;
 
@@ -13490,7 +12320,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         feedback_id = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13504,7 +12334,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* Define variables */
         GLenum target;
         uint64_t image;
         GLuint texture;
@@ -13558,7 +12387,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         share_ctx = *(EGLContext *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13572,13 +12401,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glActiveTexture GLenum texture" */
-        /* func name: "glActiveTexture" */
-        /* args: [{'type': 'GLenum', 'name': 'texture', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum texture;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -13616,7 +12438,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         texture = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13630,13 +12452,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glAttachShader GLuint program, GLuint shader" */
-        /* func name: "glAttachShader" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLuint shader;
 
@@ -13678,7 +12493,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         shader = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13692,13 +12507,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBlendColor GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha" */
-        /* func name: "glBlendColor" */
-        /* args: [{'type': 'GLfloat', 'name': 'red', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'green', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'blue', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'alpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat red;
         GLfloat green;
         GLfloat blue;
@@ -13748,7 +12556,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         alpha = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13762,13 +12570,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBlendEquation GLenum mode" */
-        /* func name: "glBlendEquation" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum mode;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -13806,7 +12607,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mode = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13820,13 +12621,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBlendEquationSeparate GLenum modeRGB, GLenum modeAlpha" */
-        /* func name: "glBlendEquationSeparate" */
-        /* args: [{'type': 'GLenum', 'name': 'modeRGB', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'modeAlpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum modeRGB;
         GLenum modeAlpha;
 
@@ -13868,7 +12662,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         modeAlpha = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13882,13 +12676,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBlendFunc GLenum sfactor, GLenum dfactor" */
-        /* func name: "glBlendFunc" */
-        /* args: [{'type': 'GLenum', 'name': 'sfactor', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'dfactor', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum sfactor;
         GLenum dfactor;
 
@@ -13930,7 +12717,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         dfactor = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -13944,13 +12731,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBlendFuncSeparate GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha" */
-        /* func name: "glBlendFuncSeparate" */
-        /* args: [{'type': 'GLenum', 'name': 'sfactorRGB', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'dfactorRGB', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'sfactorAlpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'dfactorAlpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum sfactorRGB;
         GLenum dfactorRGB;
         GLenum sfactorAlpha;
@@ -14000,7 +12780,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         dfactorAlpha = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14014,13 +12794,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClear GLbitfield mask" */
-        /* func name: "glClear" */
-        /* args: [{'type': 'GLbitfield', 'name': 'mask', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLbitfield mask;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14058,7 +12831,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mask = *(GLbitfield *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14072,13 +12845,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearColor GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha" */
-        /* func name: "glClearColor" */
-        /* args: [{'type': 'GLfloat', 'name': 'red', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'green', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'blue', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'alpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat red;
         GLfloat green;
         GLfloat blue;
@@ -14128,7 +12894,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         alpha = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14142,13 +12908,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearDepthf GLfloat d" */
-        /* func name: "glClearDepthf" */
-        /* args: [{'type': 'GLfloat', 'name': 'd', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat d;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14186,7 +12945,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         d = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14200,13 +12959,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearStencil GLint s" */
-        /* func name: "glClearStencil" */
-        /* args: [{'type': 'GLint', 'name': 's', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint s;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14244,7 +12996,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         s = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14258,13 +13010,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glColorMask GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha" */
-        /* func name: "glColorMask" */
-        /* args: [{'type': 'GLboolean', 'name': 'red', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'green', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'blue', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'alpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLboolean red;
         GLboolean green;
         GLboolean blue;
@@ -14314,7 +13059,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         alpha = *(GLboolean *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14328,13 +13073,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompileShader GLuint shader" */
-        /* func name: "glCompileShader" */
-        /* args: [{'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint shader;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14372,40 +13110,13 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         shader = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glCompileShader((GLuint)get_host_shader_id(opengl_context, (unsigned int)shader));
-        GLenum error = glGetError();
-
-        if (error != GL_NO_ERROR)
-        {
-            printf("glCompileShader %x guest %u host %u\n", error, shader, (GLuint)get_host_shader_id(opengl_context, (unsigned int)shader));
-        }
-
-        GLint compiled;
-        GLuint real_shader = (GLuint)get_host_shader_id(opengl_context, (unsigned int)shader);
-        glGetShaderiv(real_shader, GL_COMPILE_STATUS, &compiled);
-
-        if (!compiled)
-        {
-            GLint infoLen = 0;
-            glGetShaderiv(real_shader, GL_INFO_LOG_LENGTH, &infoLen);
-            char source[10000];
-            int source_len;
-            glGetShaderSource(real_shader, 10000, &source_len, source);
-            printf("shader %d:\n%s\n", real_shader, source);
-            if (infoLen > 1)
-            {
-                char *infoLog = (char *)g_malloc(sizeof(char) * infoLen);
-                glGetShaderInfoLog((GLuint)get_host_shader_id(opengl_context, (unsigned int)shader), infoLen, NULL, infoLog);
-                printf("#Error compiling shader:\n%s\n", infoLog);
-                g_free(infoLog);
-            }
-        }
+        d_glCompileShader_special(opengl_context, shader);
     }
     break;
 
@@ -14413,13 +13124,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCullFace GLenum mode" */
-        /* func name: "glCullFace" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum mode;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14457,7 +13161,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mode = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14471,13 +13175,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDepthFunc GLenum func" */
-        /* func name: "glDepthFunc" */
-        /* args: [{'type': 'GLenum', 'name': 'func', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum func;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14515,7 +13212,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         func = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14529,13 +13226,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDepthMask GLboolean flag" */
-        /* func name: "glDepthMask" */
-        /* args: [{'type': 'GLboolean', 'name': 'flag', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLboolean flag;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14573,7 +13263,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         flag = *(GLboolean *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14587,13 +13277,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDepthRangef GLfloat n, GLfloat f" */
-        /* func name: "glDepthRangef" */
-        /* args: [{'type': 'GLfloat', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat n;
         GLfloat f;
 
@@ -14635,7 +13318,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14649,13 +13332,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDetachShader GLuint program, GLuint shader" */
-        /* func name: "glDetachShader" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'shader', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLuint shader;
 
@@ -14697,7 +13373,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         shader = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14711,13 +13387,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDisable GLenum cap" */
-        /* func name: "glDisable" */
-        /* args: [{'type': 'GLenum', 'name': 'cap', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum cap;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14755,7 +13424,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         cap = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14772,13 +13441,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glEnable GLenum cap" */
-        /* func name: "glEnable" */
-        /* args: [{'type': 'GLenum', 'name': 'cap', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum cap;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -14816,7 +13478,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         cap = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14835,13 +13497,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFramebufferRenderbuffer GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer" */
-        /* func name: "glFramebufferRenderbuffer" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'attachment', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'renderbuffertarget', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'renderbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum attachment;
         GLenum renderbuffertarget;
@@ -14891,7 +13546,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         renderbuffer = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -14905,13 +13560,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFramebufferTexture2D GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level" */
-        /* func name: "glFramebufferTexture2D" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'attachment', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'textarget', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'texture', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum attachment;
         GLenum textarget;
@@ -14965,13 +13613,13 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         level = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glFramebufferTexture2D(target, attachment, textarget, (GLuint)get_host_texture_id(opengl_context, (unsigned int)texture), level);
+        d_glFramebufferTexture2D_special(opengl_context, target, attachment, textarget, texture, level);
     }
     break;
 
@@ -14979,13 +13627,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFrontFace GLenum mode" */
-        /* func name: "glFrontFace" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum mode;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -15023,7 +13664,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mode = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15037,13 +13678,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glGenerateMipmap GLenum target" */
-        /* func name: "glGenerateMipmap" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -15081,13 +13715,21 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         target = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glGenerateMipmap(target);
+        if (host_opengl_version >= 45 && DSA_enable == 1)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glGenerateTextureMipmap(bind_texture);
+        }
+        else
+        {
+            glGenerateMipmap(target);
+        }
     }
     break;
 
@@ -15095,13 +13737,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glHint GLenum target, GLenum mode" */
-        /* func name: "glHint" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum mode;
 
@@ -15143,7 +13778,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mode = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15157,13 +13792,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glLineWidth GLfloat width" */
-        /* func name: "glLineWidth" */
-        /* args: [{'type': 'GLfloat', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat width;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -15201,7 +13829,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         width = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15215,13 +13843,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPolygonOffset GLfloat factor, GLfloat units" */
-        /* func name: "glPolygonOffset" */
-        /* args: [{'type': 'GLfloat', 'name': 'factor', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'units', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat factor;
         GLfloat units;
 
@@ -15263,7 +13884,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         units = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15276,14 +13897,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     case FUNID_glReleaseShaderCompiler:
 
     {
-
-        /* readline: "glReleaseShaderCompiler void" */
-        /* func name: "glReleaseShaderCompiler" */
-        /* args: [] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glReleaseShaderCompiler)
@@ -15299,13 +13912,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glRenderbufferStorage GLenum target, GLenum internalformat, GLsizei width, GLsizei height" */
-        /* func name: "glRenderbufferStorage" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum internalformat;
         GLsizei width;
@@ -15355,7 +13961,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15369,13 +13975,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glSampleCoverage GLfloat value, GLboolean invert" */
-        /* func name: "glSampleCoverage" */
-        /* args: [{'type': 'GLfloat', 'name': 'value', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'invert', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat value;
         GLboolean invert;
 
@@ -15417,7 +14016,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         invert = *(GLboolean *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15431,13 +14030,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glScissor GLint x, GLint y, GLsizei width, GLsizei height" */
-        /* func name: "glScissor" */
-        /* args: [{'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint x;
         GLint y;
         GLsizei width;
@@ -15487,7 +14079,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15501,13 +14093,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glStencilFunc GLenum func, GLint ref, GLuint mask" */
-        /* func name: "glStencilFunc" */
-        /* args: [{'type': 'GLenum', 'name': 'func', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'ref', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'mask', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum func;
         GLint ref;
         GLuint mask;
@@ -15553,7 +14138,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mask = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15567,13 +14152,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glStencilFuncSeparate GLenum face, GLenum func, GLint ref, GLuint mask" */
-        /* func name: "glStencilFuncSeparate" */
-        /* args: [{'type': 'GLenum', 'name': 'face', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'func', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'ref', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'mask', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum face;
         GLenum func;
         GLint ref;
@@ -15623,7 +14201,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mask = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15637,13 +14215,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glStencilMask GLuint mask" */
-        /* func name: "glStencilMask" */
-        /* args: [{'type': 'GLuint', 'name': 'mask', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint mask;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -15681,7 +14252,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mask = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15695,13 +14266,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glStencilMaskSeparate GLenum face, GLuint mask" */
-        /* func name: "glStencilMaskSeparate" */
-        /* args: [{'type': 'GLenum', 'name': 'face', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'mask', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum face;
         GLuint mask;
 
@@ -15743,7 +14307,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mask = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15757,13 +14321,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glStencilOp GLenum fail, GLenum zfail, GLenum zpass" */
-        /* func name: "glStencilOp" */
-        /* args: [{'type': 'GLenum', 'name': 'fail', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'zfail', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'zpass', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum fail;
         GLenum zfail;
         GLenum zpass;
@@ -15809,7 +14366,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         zpass = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15823,13 +14380,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glStencilOpSeparate GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass" */
-        /* func name: "glStencilOpSeparate" */
-        /* args: [{'type': 'GLenum', 'name': 'face', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'sfail', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'dpfail', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'dppass', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum face;
         GLenum sfail;
         GLenum dpfail;
@@ -15879,7 +14429,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         dppass = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -15893,13 +14443,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexParameterf GLenum target, GLenum pname, GLfloat param" */
-        /* func name: "glTexParameterf" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLfloat param;
@@ -15945,28 +14488,38 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
-        if (target == GL_TEXTURE_EXTERNAL_OES)
+
+        if (host_opengl_version >= 45 && DSA_enable != 0)
         {
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(GL_TEXTURE0);
-            }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
-            glTexParameterf(GL_TEXTURE_2D, pname, param);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-            }
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureParameterf(bind_texture, pname, param);
         }
         else
         {
-            glTexParameterf(target, pname, param);
+            if (target == GL_TEXTURE_EXTERNAL_OES)
+            {
+                Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                }
+                glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
+                glTexParameterf(GL_TEXTURE_2D, pname, param);
+                glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
+                }
+            }
+            else
+            {
+                glTexParameterf(target, pname, param);
+            }
         }
     }
     break;
@@ -15975,13 +14528,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexParameteri GLenum target, GLenum pname, GLint param" */
-        /* func name: "glTexParameteri" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLint param;
@@ -16027,29 +14573,38 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        if (target == GL_TEXTURE_EXTERNAL_OES)
+        if (host_opengl_version >= 45 && DSA_enable != 0)
         {
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(GL_TEXTURE0);
-            }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
-            glTexParameteri(GL_TEXTURE_2D, pname, param);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-            }
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureParameteri(bind_texture, pname, param);
         }
         else
         {
-            glTexParameteri(target, pname, param);
+            if (target == GL_TEXTURE_EXTERNAL_OES)
+            {
+                Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                }
+                glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
+                glTexParameteri(GL_TEXTURE_2D, pname, param);
+                glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
+                }
+            }
+            else
+            {
+                glTexParameteri(target, pname, param);
+            }
         }
     }
     break;
@@ -16058,13 +14613,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform1f GLint location, GLfloat v0" */
-        /* func name: "glUniform1f" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLfloat v0;
 
@@ -16106,7 +14654,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v0 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16120,13 +14668,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform1i GLint location, GLint v0" */
-        /* func name: "glUniform1i" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLint v0;
 
@@ -16168,7 +14709,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v0 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16182,13 +14723,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform2f GLint location, GLfloat v0, GLfloat v1" */
-        /* func name: "glUniform2f" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLfloat v0;
         GLfloat v1;
@@ -16234,7 +14768,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v1 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16248,13 +14782,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform2i GLint location, GLint v0, GLint v1" */
-        /* func name: "glUniform2i" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLint v0;
         GLint v1;
@@ -16300,7 +14827,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v1 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16314,13 +14841,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform3f GLint location, GLfloat v0, GLfloat v1, GLfloat v2" */
-        /* func name: "glUniform3f" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLfloat v0;
         GLfloat v1;
@@ -16370,7 +14890,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v2 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16384,13 +14904,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform3i GLint location, GLint v0, GLint v1, GLint v2" */
-        /* func name: "glUniform3i" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLint v0;
         GLint v1;
@@ -16440,7 +14953,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v2 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16454,13 +14967,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform4f GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3" */
-        /* func name: "glUniform4f" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v3', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLfloat v0;
         GLfloat v1;
@@ -16514,7 +15020,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v3 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16528,13 +15034,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform4i GLint location, GLint v0, GLint v1, GLint v2, GLint v3" */
-        /* func name: "glUniform4i" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v3', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLint v0;
         GLint v1;
@@ -16588,7 +15087,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v3 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16602,13 +15101,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUseProgram GLuint program" */
-        /* func name: "glUseProgram" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -16646,7 +15138,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16662,13 +15154,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glValidateProgram GLuint program" */
-        /* func name: "glValidateProgram" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -16706,7 +15191,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16720,13 +15205,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib1f GLuint index, GLfloat x" */
-        /* func name: "glVertexAttrib1f" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLfloat x;
 
@@ -16768,7 +15246,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         x = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16782,13 +15260,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib2f GLuint index, GLfloat x, GLfloat y" */
-        /* func name: "glVertexAttrib2f" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLfloat x;
         GLfloat y;
@@ -16834,7 +15305,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         y = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16848,13 +15319,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib3f GLuint index, GLfloat x, GLfloat y, GLfloat z" */
-        /* func name: "glVertexAttrib3f" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLfloat x;
         GLfloat y;
@@ -16904,7 +15368,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         z = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16918,13 +15382,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib4f GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w" */
-        /* func name: "glVertexAttrib4f" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'w', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLfloat x;
         GLfloat y;
@@ -16978,7 +15435,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         w = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -16992,13 +15449,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBlitFramebuffer GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter" */
-        /* func name: "glBlitFramebuffer" */
-        /* args: [{'type': 'GLint', 'name': 'srcX0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'srcY0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'srcX1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'srcY1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'dstX0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'dstY0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'dstX1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'dstY1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'mask', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'filter', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint srcX0;
         GLint srcY0;
         GLint srcX1;
@@ -17072,7 +15522,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         filter = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17086,13 +15536,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glRenderbufferStorageMultisample GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height" */
-        /* func name: "glRenderbufferStorageMultisample" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'samples', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLsizei samples;
         GLenum internalformat;
@@ -17146,7 +15589,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17160,13 +15603,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFramebufferTextureLayer GLenum target, GLenum attachment, GLuint texture, GLint level, GLint layer" */
-        /* func name: "glFramebufferTextureLayer" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'attachment', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'texture', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'layer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum attachment;
         GLuint texture;
@@ -17220,7 +15656,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         layer = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17234,13 +15670,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribI4i GLuint index, GLint x, GLint y, GLint z, GLint w" */
-        /* func name: "glVertexAttribI4i" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'w', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLint x;
         GLint y;
@@ -17294,7 +15723,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         w = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17308,13 +15737,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribI4ui GLuint index, GLuint x, GLuint y, GLuint z, GLuint w" */
-        /* func name: "glVertexAttribI4ui" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'w', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
         GLuint x;
         GLuint y;
@@ -17368,7 +15790,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         w = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17382,13 +15804,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform1ui GLint location, GLuint v0" */
-        /* func name: "glUniform1ui" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLuint v0;
 
@@ -17430,7 +15845,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v0 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17444,13 +15859,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform2ui GLint location, GLuint v0, GLuint v1" */
-        /* func name: "glUniform2ui" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLuint v0;
         GLuint v1;
@@ -17496,7 +15904,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v1 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17510,13 +15918,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform3ui GLint location, GLuint v0, GLuint v1, GLuint v2" */
-        /* func name: "glUniform3ui" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLuint v0;
         GLuint v1;
@@ -17566,7 +15967,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v2 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17580,13 +15981,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform4ui GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3" */
-        /* func name: "glUniform4ui" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v3', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLuint v0;
         GLuint v1;
@@ -17640,7 +16034,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v3 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17654,13 +16048,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearBufferfi GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil" */
-        /* func name: "glClearBufferfi" */
-        /* args: [{'type': 'GLenum', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'drawbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'stencil', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum buffer;
         GLint drawbuffer;
         GLfloat depth;
@@ -17710,7 +16097,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         stencil = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17724,13 +16111,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCopyBufferSubData GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size" */
-        /* func name: "glCopyBufferSubData" */
-        /* args: [{'type': 'GLenum', 'name': 'readTarget', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'writeTarget', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'readOffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'writeOffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum readTarget;
         GLenum writeTarget;
         GLintptr readOffset;
@@ -17784,13 +16164,21 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         size = *(GLsizeiptr *)(temp + temp_loc);
         temp_loc += 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
-
-        glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_buffer1 = get_guest_binding_texture(opengl_context, readTarget);
+            GLuint bind_buffer2 = get_guest_binding_texture(opengl_context, writeTarget);
+            glCopyNamedBufferSubData(bind_buffer1, bind_buffer2, readOffset, writeOffset, size);
+        }
+        else
+        {
+            glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
+        }
     }
     break;
 
@@ -17798,13 +16186,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformBlockBinding GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding" */
-        /* func name: "glUniformBlockBinding" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'uniformBlockIndex', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'uniformBlockBinding', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLuint uniformBlockIndex;
         GLuint uniformBlockBinding;
@@ -17850,7 +16231,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         uniformBlockBinding = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17864,13 +16245,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glSamplerParameteri GLuint sampler, GLenum pname, GLint param" */
-        /* func name: "glSamplerParameteri" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint sampler;
         GLenum pname;
         GLint param;
@@ -17916,7 +16290,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17930,13 +16304,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glSamplerParameterf GLuint sampler, GLenum pname, GLfloat param" */
-        /* func name: "glSamplerParameterf" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint sampler;
         GLenum pname;
         GLfloat param;
@@ -17982,7 +16349,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -17996,13 +16363,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramParameteri GLuint program, GLenum pname, GLint value" */
-        /* func name: "glProgramParameteri" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'value', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLenum pname;
         GLint value;
@@ -18048,7 +16408,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         value = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18062,13 +16422,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glAlphaFuncxOES GLenum func, GLfixed ref" */
-        /* func name: "glAlphaFuncxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'func', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'ref', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum func;
         GLfixed ref;
 
@@ -18110,7 +16463,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         ref = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18124,13 +16477,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearColorxOES GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha" */
-        /* func name: "glClearColorxOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'red', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'green', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'blue', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'alpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed red;
         GLfixed green;
         GLfixed blue;
@@ -18180,7 +16526,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         alpha = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18194,13 +16540,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearDepthxOES GLfixed depth" */
-        /* func name: "glClearDepthxOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed depth;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -18238,7 +16577,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         depth = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18252,13 +16591,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glColor4xOES GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha" */
-        /* func name: "glColor4xOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'red', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'green', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'blue', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'alpha', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed red;
         GLfixed green;
         GLfixed blue;
@@ -18308,7 +16640,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         alpha = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18322,13 +16654,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDepthRangexOES GLfixed n, GLfixed f" */
-        /* func name: "glDepthRangexOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed n;
         GLfixed f;
 
@@ -18370,7 +16695,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18384,13 +16709,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFogxOES GLenum pname, GLfixed param" */
-        /* func name: "glFogxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
         GLfixed param;
 
@@ -18432,7 +16750,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18446,13 +16764,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFrustumxOES GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f" */
-        /* func name: "glFrustumxOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'l', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'r', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 't', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed l;
         GLfixed r;
         GLfixed b;
@@ -18510,7 +16821,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18524,13 +16835,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glLightModelxOES GLenum pname, GLfixed param" */
-        /* func name: "glLightModelxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
         GLfixed param;
 
@@ -18572,7 +16876,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18586,13 +16890,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glLightxOES GLenum light, GLenum pname, GLfixed param" */
-        /* func name: "glLightxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'light', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum light;
         GLenum pname;
         GLfixed param;
@@ -18638,7 +16935,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18652,13 +16949,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glLineWidthxOES GLfixed width" */
-        /* func name: "glLineWidthxOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed width;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -18696,7 +16986,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         width = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18710,13 +17000,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glMaterialxOES GLenum face, GLenum pname, GLfixed param" */
-        /* func name: "glMaterialxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'face', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum face;
         GLenum pname;
         GLfixed param;
@@ -18762,7 +17045,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18776,13 +17059,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glMultiTexCoord4xOES GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q" */
-        /* func name: "glMultiTexCoord4xOES" */
-        /* args: [{'type': 'GLenum', 'name': 'texture', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 's', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 't', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'r', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'q', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum texture;
         GLfixed s;
         GLfixed t;
@@ -18836,7 +17112,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         q = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18850,13 +17126,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glNormal3xOES GLfixed nx, GLfixed ny, GLfixed nz" */
-        /* func name: "glNormal3xOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'nx', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'ny', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'nz', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed nx;
         GLfixed ny;
         GLfixed nz;
@@ -18902,7 +17171,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         nz = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18916,13 +17185,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glOrthoxOES GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f" */
-        /* func name: "glOrthoxOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'l', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'r', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 't', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed l;
         GLfixed r;
         GLfixed b;
@@ -18980,7 +17242,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -18994,13 +17256,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPointSizexOES GLfixed size" */
-        /* func name: "glPointSizexOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed size;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -19038,7 +17293,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         size = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19052,13 +17307,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPolygonOffsetxOES GLfixed factor, GLfixed units" */
-        /* func name: "glPolygonOffsetxOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'factor', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'units', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed factor;
         GLfixed units;
 
@@ -19100,7 +17348,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         units = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19114,13 +17362,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glRotatexOES GLfixed angle, GLfixed x, GLfixed y, GLfixed z" */
-        /* func name: "glRotatexOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'angle', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed angle;
         GLfixed x;
         GLfixed y;
@@ -19170,7 +17411,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         z = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19184,13 +17425,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glScalexOES GLfixed x, GLfixed y, GLfixed z" */
-        /* func name: "glScalexOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed x;
         GLfixed y;
         GLfixed z;
@@ -19236,7 +17470,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         z = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19250,13 +17484,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexEnvxOES GLenum target, GLenum pname, GLfixed param" */
-        /* func name: "glTexEnvxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLfixed param;
@@ -19302,7 +17529,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19316,13 +17543,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTranslatexOES GLfixed x, GLfixed y, GLfixed z" */
-        /* func name: "glTranslatexOES" */
-        /* args: [{'type': 'GLfixed', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfixed x;
         GLfixed y;
         GLfixed z;
@@ -19368,7 +17588,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         z = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19382,13 +17602,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPointParameterxOES GLenum pname, GLfixed param" */
-        /* func name: "glPointParameterxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
         GLfixed param;
 
@@ -19430,7 +17643,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19444,13 +17657,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glSampleCoveragexOES GLclampx value, GLboolean invert" */
-        /* func name: "glSampleCoveragexOES" */
-        /* args: [{'type': 'GLclampx', 'name': 'value', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'invert', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLclampx value;
         GLboolean invert;
 
@@ -19492,7 +17698,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         invert = *(GLboolean *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19506,13 +17712,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexGenxOES GLenum coord, GLenum pname, GLfixed param" */
-        /* func name: "glTexGenxOES" */
-        /* args: [{'type': 'GLenum', 'name': 'coord', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum coord;
         GLenum pname;
         GLfixed param;
@@ -19558,7 +17757,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19572,13 +17771,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearDepthfOES GLclampf depth" */
-        /* func name: "glClearDepthfOES" */
-        /* args: [{'type': 'GLclampf', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLclampf depth;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -19616,7 +17808,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         depth = *(GLclampf *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19630,13 +17822,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDepthRangefOES GLclampf n, GLclampf f" */
-        /* func name: "glDepthRangefOES" */
-        /* args: [{'type': 'GLclampf', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLclampf', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLclampf n;
         GLclampf f;
 
@@ -19678,7 +17863,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLclampf *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19692,13 +17877,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFrustumfOES GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f" */
-        /* func name: "glFrustumfOES" */
-        /* args: [{'type': 'GLfloat', 'name': 'l', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'r', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 't', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat l;
         GLfloat r;
         GLfloat b;
@@ -19756,7 +17934,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19770,13 +17948,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glOrthofOES GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f" */
-        /* func name: "glOrthofOES" */
-        /* args: [{'type': 'GLfloat', 'name': 'l', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'r', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'b', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 't', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'n', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'f', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLfloat l;
         GLfloat r;
         GLfloat b;
@@ -19834,7 +18005,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         f = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19848,13 +18019,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glRenderbufferStorageMultisampleEXT GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height" */
-        /* func name: "glRenderbufferStorageMultisampleEXT" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'samples', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLsizei samples;
         GLenum internalformat;
@@ -19908,7 +18072,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         height = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19922,13 +18086,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUseProgramStages GLuint pipeline, GLbitfield stages, GLuint program" */
-        /* func name: "glUseProgramStages" */
-        /* args: [{'type': 'GLuint', 'name': 'pipeline', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLbitfield', 'name': 'stages', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint pipeline;
         GLbitfield stages;
         GLuint program;
@@ -19974,7 +18131,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -19988,13 +18145,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glActiveShaderProgram GLuint pipeline, GLuint program" */
-        /* func name: "glActiveShaderProgram" */
-        /* args: [{'type': 'GLuint', 'name': 'pipeline', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint pipeline;
         GLuint program;
 
@@ -20036,7 +18186,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         program = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20050,13 +18200,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform1i GLuint program, GLint location, GLint v0" */
-        /* func name: "glProgramUniform1i" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLint v0;
@@ -20102,7 +18245,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v0 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20116,13 +18259,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform2i GLuint program, GLint location, GLint v0, GLint v1" */
-        /* func name: "glProgramUniform2i" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLint v0;
@@ -20172,7 +18308,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v1 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20186,13 +18322,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform3i GLuint program, GLint location, GLint v0, GLint v1, GLint v2" */
-        /* func name: "glProgramUniform3i" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLint v0;
@@ -20246,7 +18375,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v2 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20260,13 +18389,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform4i GLuint program, GLint location, GLint v0, GLint v1, GLint v2, GLint v3" */
-        /* func name: "glProgramUniform4i" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'v3', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLint v0;
@@ -20324,7 +18446,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v3 = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20338,13 +18460,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform1ui GLuint program, GLint location, GLuint v0" */
-        /* func name: "glProgramUniform1ui" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLuint v0;
@@ -20390,7 +18505,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v0 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20404,13 +18519,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform2ui GLuint program, GLint location, GLuint v0, GLuint v1" */
-        /* func name: "glProgramUniform2ui" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLuint v0;
@@ -20460,7 +18568,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v1 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20474,13 +18582,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform3ui GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2" */
-        /* func name: "glProgramUniform3ui" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLuint v0;
@@ -20534,7 +18635,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v2 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20548,13 +18649,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform4ui GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3" */
-        /* func name: "glProgramUniform4ui" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'v3', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLuint v0;
@@ -20612,7 +18706,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v3 = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20626,13 +18720,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform1f GLuint program, GLint location, GLfloat v0" */
-        /* func name: "glProgramUniform1f" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLfloat v0;
@@ -20678,7 +18765,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v0 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20692,13 +18779,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform2f GLuint program, GLint location, GLfloat v0, GLfloat v1" */
-        /* func name: "glProgramUniform2f" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLfloat v0;
@@ -20748,7 +18828,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v1 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20762,13 +18842,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform3f GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2" */
-        /* func name: "glProgramUniform3f" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLfloat v0;
@@ -20822,7 +18895,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v2 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20836,13 +18909,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform4f GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3" */
-        /* func name: "glProgramUniform4f" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v0', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v1', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v2', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'v3', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLfloat v0;
@@ -20900,7 +18966,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         v3 = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20914,13 +18980,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTransformFeedbackVaryings GLuint program, GLsizei count, const GLchar *const*varyings#count|strlen(varyings[i])+1, GLenum bufferMode" */
-        /* func name: "glTransformFeedbackVaryings" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'varyings', 'ptr': 'in', 'ptr_len': 'count|strlen(varyings[i])+1', 'loc': 2, 'ptr_ptr': True}, {'type': 'GLenum', 'name': 'bufferMode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLsizei count;
         GLenum bufferMode;
@@ -20974,7 +19033,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
             varyings[i] = (GLchar *)(temp + temp_loc);
             temp_loc += strlen(varyings[i]) + 1;
         }
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -20990,13 +19049,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexParameterfv GLenum target, GLenum pname, const GLfloat *params#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glTexParameterfv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'params', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -21041,28 +19093,38 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *params = (const GLfloat *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfloat);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
-        if (target == GL_TEXTURE_EXTERNAL_OES)
+
+        if (host_opengl_version >= 45 && DSA_enable != 0)
         {
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(GL_TEXTURE0);
-            }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
-            glTexParameterfv(GL_TEXTURE_2D, pname, params);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-            }
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureParameterfv(bind_texture, pname, params);
         }
         else
         {
-            glTexParameterfv(target, pname, params);
+            if (target == GL_TEXTURE_EXTERNAL_OES)
+            {
+                Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                }
+                glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
+                glTexParameterfv(GL_TEXTURE_2D, pname, params);
+                glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
+                }
+            }
+            else
+            {
+                glTexParameterfv(target, pname, params);
+            }
         }
     }
     break;
@@ -21071,13 +19133,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexParameteriv GLenum target, GLenum pname, const GLint *params#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glTexParameteriv" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'params', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -21122,28 +19177,39 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *params = (const GLint *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
         }
-        if (target == GL_TEXTURE_EXTERNAL_OES)
+
+        if (host_opengl_version >= 45 && DSA_enable != 0)
         {
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(GL_TEXTURE0);
-            }
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_external);
-            glTexParameteriv(GL_TEXTURE_2D, pname, params);
-            glBindTexture(GL_TEXTURE_2D, opengl_context->current_texture_2D[0]);
-            if (opengl_context->current_active_texture != 0)
-            {
-                glActiveTexture(opengl_context->current_active_texture + GL_TEXTURE0);
-            }
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureParameteriv(bind_texture, pname, params);
         }
         else
         {
-            glTexParameteriv(target, pname, params);
+            if (target == GL_TEXTURE_EXTERNAL_OES)
+            {
+
+                Texture_Binding_Status *texture_status = &(opengl_context->texture_binding_status);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(GL_TEXTURE0);
+                }
+                glBindTexture(GL_TEXTURE_2D, texture_status->current_texture_external);
+                glTexParameteriv(GL_TEXTURE_2D, pname, params);
+                glBindTexture(GL_TEXTURE_2D, texture_status->host_current_texture_2D[0]);
+                if (texture_status->host_current_active_texture != 0)
+                {
+                    glActiveTexture(texture_status->host_current_active_texture + GL_TEXTURE0);
+                }
+            }
+            else
+            {
+                glTexParameteriv(target, pname, params);
+            }
         }
     }
     break;
@@ -21152,13 +19218,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform1fv GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*1" */
-        /* func name: "glUniform1fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*1', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21203,7 +19262,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 1;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21217,13 +19276,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform1iv GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*1" */
-        /* func name: "glUniform1iv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*1', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21268,7 +19320,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 1;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21282,13 +19334,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform2fv GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*2" */
-        /* func name: "glUniform2fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*2', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21333,7 +19378,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21347,13 +19392,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform2iv GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*2" */
-        /* func name: "glUniform2iv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*2', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21398,7 +19436,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21412,13 +19450,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform3fv GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*3" */
-        /* func name: "glUniform3fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*3', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21463,7 +19494,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21477,13 +19508,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform3iv GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*3" */
-        /* func name: "glUniform3iv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*3', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21528,7 +19552,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21542,13 +19566,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform4fv GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*4" */
-        /* func name: "glUniform4fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*4', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21593,7 +19610,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21607,13 +19624,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform4iv GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*4" */
-        /* func name: "glUniform4iv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*4', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -21658,7 +19668,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21672,13 +19682,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib1fv GLuint index, const GLfloat *v#sizeof(GLfloat)*1" */
-        /* func name: "glVertexAttrib1fv" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'v', 'ptr': 'in', 'ptr_len': 'sizeof(GLfloat)*1', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -21719,7 +19722,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *v = (const GLfloat *)(temp + temp_loc);
         temp_loc += sizeof(GLfloat) * 1;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21733,13 +19736,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib2fv GLuint index, const GLfloat *v#sizeof(GLfloat)*2" */
-        /* func name: "glVertexAttrib2fv" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'v', 'ptr': 'in', 'ptr_len': 'sizeof(GLfloat)*2', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -21780,7 +19776,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *v = (const GLfloat *)(temp + temp_loc);
         temp_loc += sizeof(GLfloat) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21794,13 +19790,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib3fv GLuint index, const GLfloat *v#sizeof(GLfloat)*3" */
-        /* func name: "glVertexAttrib3fv" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'v', 'ptr': 'in', 'ptr_len': 'sizeof(GLfloat)*3', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -21841,7 +19830,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *v = (const GLfloat *)(temp + temp_loc);
         temp_loc += sizeof(GLfloat) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21855,13 +19844,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttrib4fv GLuint index, const GLfloat *v#sizeof(GLfloat)*4" */
-        /* func name: "glVertexAttrib4fv" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'v', 'ptr': 'in', 'ptr_len': 'sizeof(GLfloat)*4', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -21902,7 +19884,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *v = (const GLfloat *)(temp + temp_loc);
         temp_loc += sizeof(GLfloat) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21916,13 +19898,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix2fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*4" */
-        /* func name: "glUniformMatrix2fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*4', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -21971,7 +19946,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -21985,13 +19960,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix3fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*9" */
-        /* func name: "glUniformMatrix3fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*9', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22040,7 +20008,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 9;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22054,13 +20022,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix4fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*16" */
-        /* func name: "glUniformMatrix4fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*16', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22109,7 +20070,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 16;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22123,13 +20084,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix2x3fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*6" */
-        /* func name: "glUniformMatrix2x3fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*6', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22178,7 +20132,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 6;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22192,13 +20146,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix3x2fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*6" */
-        /* func name: "glUniformMatrix3x2fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*6', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22247,7 +20194,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 6;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22261,13 +20208,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix2x4fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*8" */
-        /* func name: "glUniformMatrix2x4fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*8', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22316,7 +20256,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22330,13 +20270,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix4x2fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*8" */
-        /* func name: "glUniformMatrix4x2fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*8', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22385,7 +20318,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22399,13 +20332,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix3x4fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*12" */
-        /* func name: "glUniformMatrix3x4fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*12', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22454,7 +20380,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 12;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22468,13 +20394,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniformMatrix4x3fv GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*12" */
-        /* func name: "glUniformMatrix4x3fv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*12', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
         GLboolean transpose;
@@ -22523,7 +20442,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 12;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22537,13 +20456,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribI4iv GLuint index, const GLint *v#sizeof(GLint)*4" */
-        /* func name: "glVertexAttribI4iv" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'v', 'ptr': 'in', 'ptr_len': 'sizeof(GLint)*4', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -22584,7 +20496,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *v = (const GLint *)(temp + temp_loc);
         temp_loc += sizeof(GLint) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22598,13 +20510,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribI4uiv GLuint index, const GLuint *v#sizeof(GLuint)*4" */
-        /* func name: "glVertexAttribI4uiv" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'v', 'ptr': 'in', 'ptr_len': 'sizeof(GLuint)*4', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint index;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -22645,7 +20550,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *v = (const GLuint *)(temp + temp_loc);
         temp_loc += sizeof(GLuint) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22659,13 +20564,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform1uiv GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*1" */
-        /* func name: "glUniform1uiv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*1', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -22710,7 +20608,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 1;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22724,13 +20622,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform2uiv GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*2" */
-        /* func name: "glUniform2uiv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*2', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -22775,7 +20666,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22789,13 +20680,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform3uiv GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*3" */
-        /* func name: "glUniform3uiv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*3', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -22840,7 +20724,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22854,13 +20738,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glUniform4uiv GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*4" */
-        /* func name: "glUniform4uiv" */
-        /* args: [{'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*4', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint location;
         GLsizei count;
 
@@ -22905,7 +20782,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22919,13 +20796,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearBufferiv GLenum buffer, GLint drawbuffer, const GLint *value#(buffer==GL_COLOR?4*sizeof(GLint):1*sizeof(GLint))" */
-        /* func name: "glClearBufferiv" */
-        /* args: [{'type': 'GLenum', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'drawbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': '(buffer==GL_COLOR?4*sizeof(GLint):1*sizeof(GLint))', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum buffer;
         GLint drawbuffer;
 
@@ -22970,7 +20840,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += (buffer == GL_COLOR ? 4 * sizeof(GLint) : 1 * sizeof(GLint));
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -22984,13 +20854,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearBufferuiv GLenum buffer, GLint drawbuffer, const GLuint *value#(buffer==GL_COLOR?4*sizeof(GLuint):1*sizeof(GLuint))" */
-        /* func name: "glClearBufferuiv" */
-        /* args: [{'type': 'GLenum', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'drawbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': '(buffer==GL_COLOR?4*sizeof(GLuint):1*sizeof(GLuint))', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum buffer;
         GLint drawbuffer;
 
@@ -23035,7 +20898,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += (buffer == GL_COLOR ? 4 * sizeof(GLuint) : 1 * sizeof(GLuint));
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23049,13 +20912,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClearBufferfv GLenum buffer, GLint drawbuffer, const GLfloat *value#(buffer==GL_COLOR?4*sizeof(GLfloat):1*sizeof(GLfloat))" */
-        /* func name: "glClearBufferfv" */
-        /* args: [{'type': 'GLenum', 'name': 'buffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'drawbuffer', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': '(buffer==GL_COLOR?4*sizeof(GLfloat):1*sizeof(GLfloat))', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum buffer;
         GLint drawbuffer;
 
@@ -23100,7 +20956,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += (buffer == GL_COLOR ? 4 * sizeof(GLfloat) : 1 * sizeof(GLfloat));
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23114,13 +20970,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glSamplerParameteriv GLuint sampler, GLenum pname, const GLint *param#gl_pname_size(pname)*sizeof(GLint)" */
-        /* func name: "glSamplerParameteriv" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'param', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLint)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint sampler;
         GLenum pname;
 
@@ -23165,7 +21014,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *param = (const GLint *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23179,13 +21028,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glSamplerParameterfv GLuint sampler, GLenum pname, const GLfloat *param#gl_pname_size(pname)*sizeof(GLfloat)" */
-        /* func name: "glSamplerParameterfv" */
-        /* args: [{'type': 'GLuint', 'name': 'sampler', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'param', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfloat)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint sampler;
         GLenum pname;
 
@@ -23230,7 +21072,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *param = (const GLfloat *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfloat);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23244,13 +21086,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glInvalidateFramebuffer GLenum target, GLsizei numAttachments, const GLenum *attachments#numAttachments*sizeof(GLenum)" */
-        /* func name: "glInvalidateFramebuffer" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'numAttachments', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLenum*', 'name': 'attachments', 'ptr': 'in', 'ptr_len': 'numAttachments*sizeof(GLenum)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLsizei numAttachments;
 
@@ -23295,7 +21130,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         GLenum *attachments = (const GLenum *)(temp + temp_loc);
         temp_loc += numAttachments * sizeof(GLenum);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23325,13 +21160,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glInvalidateSubFramebuffer GLenum target, GLsizei numAttachments, const GLenum *attachments#numAttachments*sizeof(GLenum), GLint x, GLint y, GLsizei width, GLsizei height" */
-        /* func name: "glInvalidateSubFramebuffer" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'numAttachments', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLenum*', 'name': 'attachments', 'ptr': 'in', 'ptr_len': 'numAttachments*sizeof(GLenum)', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLsizei numAttachments;
         GLint x;
@@ -23392,7 +21220,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLenum *attachments = (const GLenum *)(temp + temp_loc);
         temp_loc += numAttachments * sizeof(GLenum);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23406,13 +21234,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClipPlanexOES GLenum plane, const GLfixed *equation#sizeof(GLfixed)*4" */
-        /* func name: "glClipPlanexOES" */
-        /* args: [{'type': 'GLenum', 'name': 'plane', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'equation', 'ptr': 'in', 'ptr_len': 'sizeof(GLfixed)*4', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum plane;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -23453,7 +21274,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *equation = (const GLfixed *)(temp + temp_loc);
         temp_loc += sizeof(GLfixed) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23467,13 +21288,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFogxvOES GLenum pname, const GLfixed *param#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glFogxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'param', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -23514,7 +21328,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *param = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23528,13 +21342,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glLightModelxvOES GLenum pname, const GLfixed *param#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glLightModelxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'param', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -23575,7 +21382,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *param = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23589,13 +21396,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glLightxvOES GLenum light, GLenum pname, const GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glLightxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'light', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'params', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum light;
         GLenum pname;
 
@@ -23640,7 +21440,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *params = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23653,14 +21453,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     case FUNID_glLoadMatrixxOES:
 
     {
-
-        /* readline: "glLoadMatrixxOES const GLfixed *m#16*sizeof(GLfixed)" */
-        /* func name: "glLoadMatrixxOES" */
-        /* args: [{'type': 'const GLfixed*', 'name': 'm', 'ptr': 'in', 'ptr_len': '16*sizeof(GLfixed)', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glLoadMatrixxOES)
@@ -23697,7 +21489,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *m = (const GLfixed *)(temp + temp_loc);
         temp_loc += 16 * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23711,13 +21503,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glMaterialxvOES GLenum face, GLenum pname, const GLfixed *param#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glMaterialxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'face', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'param', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum face;
         GLenum pname;
 
@@ -23762,7 +21547,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *param = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23775,14 +21560,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     case FUNID_glMultMatrixxOES:
 
     {
-
-        /* readline: "glMultMatrixxOES const GLfixed *m#16*sizeof(GLfixed)" */
-        /* func name: "glMultMatrixxOES" */
-        /* args: [{'type': 'const GLfixed*', 'name': 'm', 'ptr': 'in', 'ptr_len': '16*sizeof(GLfixed)', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
         if (para_num < PARA_NUM_MIN_glMultMatrixxOES)
@@ -23819,7 +21596,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *m = (const GLfixed *)(temp + temp_loc);
         temp_loc += 16 * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23833,13 +21610,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPointParameterxvOES GLenum pname, const GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glPointParameterxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'params', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum pname;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -23880,7 +21650,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *params = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23894,13 +21664,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexEnvxvOES GLenum target, GLenum pname, const GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glTexEnvxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'params', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
 
@@ -23945,7 +21708,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *params = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -23959,13 +21722,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glClipPlanefOES GLenum plane, const GLfloat *equation#sizeof(GLfloat)*4" */
-        /* func name: "glClipPlanefOES" */
-        /* args: [{'type': 'GLenum', 'name': 'plane', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'equation', 'ptr': 'in', 'ptr_len': 'sizeof(GLfloat)*4', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum plane;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -24006,7 +21762,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *equation = (const GLfloat *)(temp + temp_loc);
         temp_loc += sizeof(GLfloat) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24020,13 +21776,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexGenxvOES GLenum coord, GLenum pname, const GLfixed *params#gl_pname_size(pname)*sizeof(GLfixed)" */
-        /* func name: "glTexGenxvOES" */
-        /* args: [{'type': 'GLenum', 'name': 'coord', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLfixed*', 'name': 'params', 'ptr': 'in', 'ptr_len': 'gl_pname_size(pname)*sizeof(GLfixed)', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum coord;
         GLenum pname;
 
@@ -24071,7 +21820,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfixed *params = (const GLfixed *)(temp + temp_loc);
         temp_loc += gl_pname_size(pname) * sizeof(GLfixed);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24085,13 +21834,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform1iv GLuint program, GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)" */
-        /* func name: "glProgramUniform1iv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24140,7 +21882,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24154,13 +21896,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform2iv GLuint program, GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*2" */
-        /* func name: "glProgramUniform2iv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*2', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24209,7 +21944,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24223,13 +21958,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform3iv GLuint program, GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*3" */
-        /* func name: "glProgramUniform3iv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*3', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24278,7 +22006,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24292,13 +22020,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform4iv GLuint program, GLint location, GLsizei count, const GLint *value#count*sizeof(GLint)*4" */
-        /* func name: "glProgramUniform4iv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLint)*4', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24347,7 +22068,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLint *value = (const GLint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLint) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24361,13 +22082,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform1uiv GLuint program, GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)" */
-        /* func name: "glProgramUniform1uiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24416,7 +22130,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24430,13 +22144,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform2uiv GLuint program, GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*2" */
-        /* func name: "glProgramUniform2uiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*2', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24485,7 +22192,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24499,13 +22206,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform3uiv GLuint program, GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*3" */
-        /* func name: "glProgramUniform3uiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*3', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24554,7 +22254,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24568,13 +22268,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform4uiv GLuint program, GLint location, GLsizei count, const GLuint *value#count*sizeof(GLuint)*4" */
-        /* func name: "glProgramUniform4uiv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLuint*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLuint)*4', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24623,7 +22316,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLuint *value = (const GLuint *)(temp + temp_loc);
         temp_loc += count * sizeof(GLuint) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24637,13 +22330,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform1fv GLuint program, GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)" */
-        /* func name: "glProgramUniform1fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24692,7 +22378,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24706,13 +22392,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform2fv GLuint program, GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*2" */
-        /* func name: "glProgramUniform2fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*2', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24761,7 +22440,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 2;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24775,13 +22454,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform3fv GLuint program, GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*3" */
-        /* func name: "glProgramUniform3fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*3', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24830,7 +22502,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 3;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24844,13 +22516,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniform4fv GLuint program, GLint location, GLsizei count, const GLfloat *value#count*sizeof(GLfloat)*4" */
-        /* func name: "glProgramUniform4fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*4', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24899,7 +22564,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24913,13 +22578,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix2fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*4" */
-        /* func name: "glProgramUniformMatrix2fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*4', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -24972,7 +22630,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -24986,13 +22644,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix3fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*9" */
-        /* func name: "glProgramUniformMatrix3fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*9', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25045,7 +22696,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 9;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25059,13 +22710,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix4fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*16" */
-        /* func name: "glProgramUniformMatrix4fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*16', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25118,7 +22762,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 16;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25132,13 +22776,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix2x3fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*6" */
-        /* func name: "glProgramUniformMatrix2x3fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*6', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25191,7 +22828,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 6;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25205,13 +22842,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix3x2fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*6" */
-        /* func name: "glProgramUniformMatrix3x2fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*6', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25264,7 +22894,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 6;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25278,13 +22908,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix2x4fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*8" */
-        /* func name: "glProgramUniformMatrix2x4fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*8', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25337,7 +22960,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25351,13 +22974,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix4x2fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*8" */
-        /* func name: "glProgramUniformMatrix4x2fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*8', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25410,7 +23026,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 8;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25424,13 +23040,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix3x4fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*12" */
-        /* func name: "glProgramUniformMatrix3x4fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*12', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25483,7 +23092,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 12;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25497,13 +23106,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glProgramUniformMatrix4x3fv GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value#count*sizeof(GLfloat)*12" */
-        /* func name: "glProgramUniformMatrix4x3fv" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'location', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'transpose', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'const GLfloat*', 'name': 'value', 'ptr': 'in', 'ptr_len': 'count*sizeof(GLfloat)*12', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLint location;
         GLsizei count;
@@ -25556,7 +23158,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLfloat *value = (const GLfloat *)(temp + temp_loc);
         temp_loc += count * sizeof(GLfloat) * 12;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25570,13 +23172,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBindAttribLocation GLuint program, GLuint index, const GLchar *name#strlen(name)+1" */
-        /* func name: "glBindAttribLocation" */
-        /* args: [{'type': 'GLuint', 'name': 'program', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'name', 'ptr': 'in', 'ptr_len': 'strlen(name)+1', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLuint program;
         GLuint index;
 
@@ -25621,7 +23216,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         const GLchar *name = (const GLchar *)(temp + temp_loc);
         temp_loc += strlen(name) + 1;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25635,13 +23230,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexEnvf GLenum target, GLenum pname, GLfloat param" */
-        /* func name: "glTexEnvf" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfloat', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLfloat param;
@@ -25687,7 +23275,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfloat *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25701,13 +23289,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexEnvi GLenum target, GLenum pname, GLint param" */
-        /* func name: "glTexEnvi" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLint param;
@@ -25753,7 +23334,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25767,13 +23348,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexEnvx GLenum target, GLenum pname, GLfixed param" */
-        /* func name: "glTexEnvx" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLfixed', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLfixed param;
@@ -25819,7 +23393,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLfixed *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25833,13 +23407,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexParameterx GLenum target, GLenum pname, GLint param" */
-        /* func name: "glTexParameterx" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'pname', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'param', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum target;
         GLenum pname;
         GLint param;
@@ -25885,7 +23452,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         param = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25899,13 +23466,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glShadeModel GLenum mode" */
-        /* func name: "glShadeModel" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLenum mode;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -25943,7 +23503,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         mode = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -25957,13 +23517,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawTexiOES GLint x, GLint y, GLint z, GLint width, GLint height, GLfloat left_x, GLfloat right_x, GLfloat bottom_y, GLfloat top_y" */
-        /* func name: "glDrawTexiOES" */
-        /* args: [{'type': 'GLint', 'name': 'x', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'y', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'z', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "212" */
-
-        /* Define variables */
         GLint x;
         GLint y;
         GLint z;
@@ -26034,7 +23587,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         top_y = *(GLfloat *)(temp + temp_loc);
         temp_loc += sizeof(GLfloat);
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -26044,21 +23596,10 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     }
     break;
 
-        /******* end of file '2-1-2', 210/364 functions*******/
-
-        /******* file '2-2' *******/
-
     case FUNID_glVertexAttribIPointer_without_bound:
 
     {
 
-        /* readline: "glVertexAttribIPointer_without_bound GLuint index, GLint size, GLenum type, GLsizei stride, GLuint offset, GLsizei length, const void *pointer#length" */
-        /* func name: "glVertexAttribIPointer_without_bound" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'stride', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'pointer', 'ptr': 'in', 'ptr_len': 'length', 'loc': 6, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLuint index;
         GLint size;
         GLenum type;
@@ -26127,13 +23668,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glVertexAttribPointer_without_bound GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLuint offset, GLuint length, const void *pointer#length" */
-        /* func name: "glVertexAttribPointer_without_bound" */
-        /* args: [{'type': 'GLuint', 'name': 'index', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLboolean', 'name': 'normalized', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'stride', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'pointer', 'ptr': 'in', 'ptr_len': 'length', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLuint index;
         GLint size;
         GLenum type;
@@ -26206,13 +23740,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawElements_without_bound GLenum mode, GLsizei count, GLenum type, const void *indices#count*gl_sizeof(type)" */
-        /* func name: "glDrawElements_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'indices', 'ptr': 'in', 'ptr_len': 'count*gl_sizeof(type)', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum mode;
         GLsizei count;
         GLenum type;
@@ -26269,13 +23796,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawElementsInstanced_without_bound GLenum mode, GLsizei count, GLenum type, const void *indices#count*gl_sizeof(type), GLsizei instancecount" */
-        /* func name: "glDrawElementsInstanced_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'indices', 'ptr': 'in', 'ptr_len': 'count*gl_sizeof(type)', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'instancecount', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum mode;
         GLsizei count;
         GLenum type;
@@ -26336,13 +23856,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glDrawRangeElements_without_bound GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices#count*gl_sizeof(type)" */
-        /* func name: "glDrawRangeElements_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'mode', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'start', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLuint', 'name': 'end', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'count', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'indices', 'ptr': 'in', 'ptr_len': 'count*gl_sizeof(type)', 'loc': 5, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum mode;
         GLuint start;
         GLuint end;
@@ -26407,13 +23920,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glFlushMappedBufferRange_special GLenum target, GLintptr offset, GLsizeiptr length, const void *data#length" */
-        /* func name: "glFlushMappedBufferRange_special" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'length', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'length', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLintptr offset;
         GLsizeiptr length;
@@ -26470,13 +23976,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBufferData_custom GLenum target, GLsizeiptr size, const void *data#size, GLenum usage" */
-        /* func name: "glBufferData_custom" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'size', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'usage', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLsizeiptr size;
         GLenum usage;
@@ -26533,13 +24032,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glBufferSubData_custom GLenum target, GLintptr offset, GLsizeiptr size, const void *data#size" */
-        /* func name: "glBufferSubData_custom" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLintptr', 'name': 'offset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLsizeiptr', 'name': 'size', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'size', 'loc': 3, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLintptr offset;
         GLsizeiptr size;
@@ -26596,13 +24088,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexImage2D_without_bound GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data#imageSize  @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexImage2D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'imageSize', 'loc': 7, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum internalformat;
@@ -26675,13 +24160,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexSubImage2D_without_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data#imageSize @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexSubImage2D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'imageSize', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -26758,13 +24236,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexImage3D_without_bound GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const void *data#imageSize @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexImage3D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'imageSize', 'loc': 8, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLenum internalformat;
@@ -26841,13 +24312,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glCompressedTexSubImage3D_without_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *data#imageSize @{if(imageSize<0){ set_gl_error(context,GL_INVALID_VALUE); return; }}" */
-        /* func name: "glCompressedTexSubImage3D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'zoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'imageSize', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'data', 'ptr': 'in', 'ptr_len': 'imageSize', 'loc': 10, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -26932,13 +24396,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexImage2D_without_bound GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, GLint buf_len, const void *pixels#buf_len" */
-        /* func name: "glTexImage2D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'pixels', 'ptr': 'in', 'ptr_len': 'buf_len', 'loc': 9, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint internalformat;
@@ -27019,13 +24476,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexImage3D_without_bound GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, GLint buf_len, const void *pixels#buf_len" */
-        /* func name: "glTexImage3D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'internalformat', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'border', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'pixels', 'ptr': 'in', 'ptr_len': 'buf_len', 'loc': 10, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint internalformat;
@@ -27110,13 +24560,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexSubImage2D_without_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, GLint buf_len, const void *pixels#buf_len" */
-        /* func name: "glTexSubImage2D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'pixels', 'ptr': 'in', 'ptr_len': 'buf_len', 'loc': 9, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -27197,13 +24640,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glTexSubImage3D_without_bound GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLint buf_len, const void *pixels#buf_len" */
-        /* func name: "glTexSubImage3D_without_bound" */
-        /* args: [{'type': 'GLenum', 'name': 'target', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'level', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 1, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'xoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 2, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'yoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 3, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'zoffset', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 4, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'width', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 5, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'height', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 6, 'ptr_ptr': False}, {'type': 'GLsizei', 'name': 'depth', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 7, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'format', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 8, 'ptr_ptr': False}, {'type': 'GLenum', 'name': 'type', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 9, 'ptr_ptr': False}, {'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 10, 'ptr_ptr': False}, {'type': 'const void*', 'name': 'pixels', 'ptr': 'in', 'ptr_len': 'buf_len', 'loc': 11, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLenum target;
         GLint level;
         GLint xoffset;
@@ -27292,13 +24728,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* readline: "glPrintf GLint buf_len, const GLchar *out_string#buf_len" */
-        /* func name: "glPrintf" */
-        /* args: [{'type': 'GLint', 'name': 'buf_len', 'ptr': 'NA', 'ptr_len': 'NA', 'loc': 0, 'ptr_ptr': False}, {'type': 'const GLchar*', 'name': 'out_string', 'ptr': 'in', 'ptr_len': 'buf_len', 'loc': 1, 'ptr_ptr': False}] */
-        /* ret: "" */
-        /* type: "220" */
-
-        /* Define variables */
         GLint buf_len;
 
         int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
@@ -27342,8 +24771,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         d_glPrintf(opengl_context, buf_len, out_string);
     }
     break;
-
-        /******* end of file '2-2', 18/375 functions*******/
 
     case FUNID_glGraphicBufferData:
 
@@ -27574,7 +25001,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
     case FUNID_glSync:
     {
 
-        printf("guest sync\n");
+        express_printf("guest sync\n");
     }
     break;
 
@@ -27582,7 +25009,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* Define variables */
         GLuint unit;
         GLuint texture;
         GLint level;
@@ -27645,7 +25071,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         format = *(GLenum *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -27708,7 +25133,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         stride = *(GLsizei *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -27775,7 +25199,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         relativeoffset = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -27838,7 +25261,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         relativeoffset = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -27893,7 +25315,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         bindingindex = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -27952,7 +25373,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         num_groups_z = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28053,7 +25473,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         barriers = *(GLbitfield *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28104,7 +25523,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         barriers = *(GLbitfield *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28163,7 +25581,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         param = *(GLint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28219,7 +25636,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         mask = *(GLbitfield *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28290,12 +25706,20 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         fixedsamplelocations = *(GLboolean *)(temp + temp_loc);
         temp_loc += 1;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
         }
-        glTexStorage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
+
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_texture = get_guest_binding_texture(opengl_context, target);
+            glTextureStorage2DMultisample(bind_texture, samples, internalformat, width, height, fixedsamplelocations);
+        }
+        else
+        {
+            glTexStorage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
+        }
     }
     break;
 
@@ -28341,7 +25765,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         pipeline = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28397,7 +25820,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         divisor = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28453,7 +25875,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         indirect = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28508,7 +25929,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         indirect = (void *)(temp + temp_loc);
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28567,7 +25987,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         indirect = *(GLintptr *)(temp + temp_loc);
         temp_loc += 8;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28625,7 +26044,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         indirect = (void *)(temp + temp_loc);
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
@@ -28640,7 +26058,6 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
     {
 
-        /* Define variables */
         GLenum target;
         GLsizei numAttachments;
 
@@ -28685,7 +26102,7 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
 
         GLenum *attachments = (const GLenum *)(temp + temp_loc);
         temp_loc += numAttachments * sizeof(GLenum);
-        /* Check length */
+
         if (temp_len < temp_loc)
         {
             break;
@@ -28760,13 +26177,20 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         buffer = *(GLuint *)(temp + temp_loc);
         temp_loc += 4;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glTexBuffer(target, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_buffer = get_guest_binding_buffer(opengl_context, target);
+            glTextureBuffer(bind_buffer, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
+        }
+        else
+        {
+            glTexBuffer(target, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer));
+        }
     }
     break;
 
@@ -28828,13 +26252,213 @@ void gl3_decode_invoke(Render_Thread_Context *r_context, Direct_Express_Call *ca
         size = *(GLsizeiptr *)(temp + temp_loc);
         temp_loc += 8;
 
-        /* Check length */
         if (temp_len < temp_loc)
         {
             break;
         }
 
-        glTexBufferRange(target, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size);
+        if (host_opengl_version >= 45 && DSA_enable != 0)
+        {
+            GLuint bind_buffer = get_guest_binding_buffer(opengl_context, target);
+            glTexBufferRange(bind_buffer, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size);
+        }
+        else
+        {
+            glTexBufferRange(target, internalformat, (GLuint)get_host_buffer_id(opengl_context, (unsigned int)buffer), offset, size);
+        }
+    }
+    break;
+
+    case FUNID_glColorMaski:
+
+    {
+
+        GLuint buf;
+        GLboolean red;
+        GLboolean green;
+        GLboolean blue;
+        GLboolean alpha;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glColorMaski)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 8 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        buf = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        red = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        green = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        blue = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        alpha = *(GLboolean *)(temp + temp_loc);
+        temp_loc += 1;
+
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glColorMaski(buf, red, green, blue, alpha);
+    }
+    break;
+
+    case FUNID_glBlendFuncSeparatei:
+
+    {
+
+        GLuint buf;
+        GLenum srcRGB;
+        GLenum dstRGB;
+        GLenum srcAlpha;
+        GLenum dstAlpha;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glBlendFuncSeparatei)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 20 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        buf = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        srcRGB = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        dstRGB = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        srcAlpha = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        dstAlpha = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glBlendFuncSeparatei(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
+    }
+    break;
+
+    case FUNID_glBlendEquationSeparatei:
+
+    {
+
+        GLuint buf;
+        GLenum modeRGB;
+        GLenum modeAlpha;
+
+        int para_num = get_para_from_call(call, all_para, MAX_PARA_NUM);
+        if (para_num < PARA_NUM_MIN_glBlendEquationSeparatei)
+        {
+            break;
+        }
+
+        size_t temp_len = 0;
+        unsigned char *temp = NULL;
+
+        temp_len = all_para[0].data_len;
+        if (temp_len < 12 * 1)
+        {
+            break;
+        }
+
+        int null_flag = 0;
+        temp = get_direct_ptr(all_para[0].data, &null_flag);
+        if (temp == NULL)
+        {
+            if (temp_len != 0 && null_flag == 0)
+            {
+                temp = g_malloc(temp_len);
+                no_ptr_buf = temp;
+                guest_write(all_para[0].data, temp, 0, all_para[0].data_len);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        unsigned int temp_loc = 0;
+
+        buf = *(GLuint *)(temp + temp_loc);
+        temp_loc += 4;
+
+        modeRGB = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        modeAlpha = *(GLenum *)(temp + temp_loc);
+        temp_loc += 4;
+
+        if (temp_len < temp_loc)
+        {
+            break;
+        }
+
+        glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
     }
     break;
 

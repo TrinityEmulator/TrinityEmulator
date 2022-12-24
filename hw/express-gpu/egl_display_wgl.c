@@ -1,10 +1,9 @@
-
 /**
- * @file egl_display_wgl.c
+ * @file egl_display.c
  * @author Hao Lin
- * @brief Query display configs and translate to EGL ones on Windows using WGL
+ * @brief Basic utilities for handling display-related operations
  * @version 0.1
- * @date 2021-05-29
+ * @date 2021-08-13
  *
  * @copyright Copyright (c) 2021
  *

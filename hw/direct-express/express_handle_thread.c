@@ -1,18 +1,18 @@
-
 /**
  * @file express_handle_thread.c
  * @author Di Gao
  * @brief Thread for handling call data. Created by the data distribution thread.
  * @version 0.1
  * @date 2020-12-31
- * 
+ *
  * @copyright Copyright (c) 2020
- * 
+ *
  */
 
 #include "qemu/osdep.h"
 #include "qemu/thread.h"
 #include "direct-express/express_handle_thread.h"
+
 #include "direct-express/express_log.h"
 
 Direct_Express_Call *call_pop(Thread_Context *context);
@@ -37,6 +37,7 @@ Direct_Express_Call *call_pop(Thread_Context *context)
         }
     }
     Direct_Express_Call *ret = context->call_buf[context->read_loc];
+    context->call_buf[context->read_loc] = NULL;
 
     context->read_loc = (context->read_loc + 1) % CALL_BUF_SIZE;
 
@@ -72,6 +73,10 @@ void call_push(Thread_Context *context, Direct_Express_Call *call)
             return;
         }
     }
+    if (context->call_buf[context->write_loc] != NULL)
+    {
+        printf("error push find not null\n");
+    }
     context->call_buf[context->write_loc] = call;
 
     context->write_loc = (context->write_loc + 1) % CALL_BUF_SIZE;
@@ -97,7 +102,7 @@ void *handle_thread_run(void *opaque)
     {
         context->context_init(context);
     }
-    context->thread_run = 1;
+    context->thread_run = 2;
     context->init = 1;
     while (context->thread_run)
     {
@@ -110,6 +115,7 @@ void *handle_thread_run(void *opaque)
 
         if (call->is_end)
         {
+            express_printf("thread context %llx call end thread_id %lld process_id %lld\n", context, call->thread_id, call->process_id);
             call->callback(call, 0);
             context->thread_run = 0;
             continue;

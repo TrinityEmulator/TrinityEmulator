@@ -1,6 +1,5 @@
-
 /**
- * @file offscreen_render_thread.c
+ * @file test_trans.c
  * @author Di Gao
  * @brief Testing data transfer
  * @version 0.1
