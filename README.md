@@ -3,11 +3,14 @@
 
 This is the Artifact README for Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
 
-
-<p float="left" align="center">
-<img src=https://user-images.githubusercontent.com/96227984/162603121-267b3496-60cd-448a-89d3-8a6664b85f1e.gif width=400/>
-<img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif width=400/>
-</p>
+<div class="row">
+  <div class="column" style="float: left;width:49%">
+    <img src=https://user-images.githubusercontent.com/96227984/162603121-267b3496-60cd-448a-89d3-8a6664b85f1e.gif style="width:100%"/>
+  </div>
+  <div class="column" style="float: left;width:49%">
+    <img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif style="width:100%"/>
+  </div>
+</div>
 
 ### 1. Getting Started with Trinity
 
@@ -21,18 +24,13 @@ This is the Artifact README for Trinity---an Android emulator designed to simult
 
 * **Software Prerequisites**
   1. Ensure that you have turned on Intel VT in the BIOS settings. By default, this is turned on for most PCs.
-  2. Install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/download/v7.6.5/haxm-windows_v7_6_5.zip). Extract the downloaded ZIP file, and simply double-click `haxm-7.6.5-setup.exe` to install. 
-  3. You should turn off Windows' Hyper-V if it's enabled ([how to determine Hyper-V's state](https://docs.microsoft.com/en-us/troubleshoot/windows-client/application-management/virtualization-apps-not-work-with-hyper-v#determine-whether-the-hyper-v-hypervisor-is-running)) as it inherently conflicts with Intel HAXM. Enter the following commands in Windows Terminal and **restart Windows**: 
-      ```
-      bcdedit /set hypervisorlaunchtype off
-      DISM /Online /Disable-Feature:Microsoft-Hyper-V
-      ```
-      To turn Hyper-V back on later if you need, try:
-      ```
-      bcdedit /set hypervisorlaunchtype auto
-      Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
-      DISM /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V
-      ```
+  2. Check whether Windows' Hyper-V if it's enabled ([how to determine Hyper-V's state](https://docs.microsoft.com/en-us/troubleshoot/windows-client/application-management/virtualization-apps-not-work-with-hyper-v#determine-whether-the-hyper-v-hypervisor-is-running)).
+  3. If not, install Intel HAXM (recommended version is [v7.6.5](https://github.com/intel/haxm/releases/download/v7.6.5/haxm-windows_v7_6_5.zip). Extract the downloaded ZIP file, and simply double-click `haxm-7.6.5-setup.exe` to install. 
+
+  * NOTE: Hyper-V generally provides better CPU performance over HAXM. 
+  So we recommend using Hyper-V if possible. Our program is capable of detecting Hyper-V and automatically choosing it when applicable. 
+  Also, on Windows 22H2, HAXM seems to show some buggy behaviors that prevent the guest OS from loading into the virtual memory,   
+    in which case it's better you enable Hyper-V instead.
 
 * **Running the Released Binary**
 
