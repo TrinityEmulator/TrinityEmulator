@@ -3,14 +3,9 @@
 
 This is the Artifact README for Trinity---an Android emulator designed to simultaneously meet the goals of good compatibility, security and efficiency with our novel notion of graphics projection space.
 
-<div class="row">
-  <div class="column" style="float: left;width:49%">
-    <img src=https://user-images.githubusercontent.com/96227984/162603121-267b3496-60cd-448a-89d3-8a6664b85f1e.gif style="width:100%"/>
-  </div>
-  <div class="column" style="float: left;width:49%">
-    <img src=https://user-images.githubusercontent.com/96227984/162574611-ed89b1a8-1ad8-4f65-8b85-d309fddbdc94.gif style="width:100%"/>
-  </div>
-</div>
+<p align=center>
+<img src=https://user-images.githubusercontent.com/32576375/209423491-b2e816f2-b641-446d-9b7f-3ff8c29db773.gif style="width:60%"/>
+</p>
 
 ### 1. Getting Started with Trinity
 
