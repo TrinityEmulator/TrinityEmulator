@@ -103,6 +103,15 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 
     We provide a proxy executable for running Trinity. Therefore, all you need to do is: 
     Download the guest system’s images (`Android_x86_64.iso` and `hda.img`) and the executable (`Trinity.exe`) packed in [the Trinity.zip file](https://github.com/TrinityEmulator/TrinityEmulator/releases/tag/Trinity-Release), put them at the root directory of the repo, and execute the executable at the **MSYS2 MinGW x64** terminal (directly click on the file may not work due to missing dlls) to run Trinity.
+    
+    Otherwise, if you wish to run Trinity in terminals rather than the executable, you can run the following command at the root directory of Trinity if you use Hyper-V
+    ```
+    .\\x86_64-softmmu\\qemu-system-x86_64.exe -accel whpx -cpu android64 -m 4096 -smp 4 -machine usb=on -device usb-kbd -device usb-tablet -boot menu=on -soundhw hda -net nic -net user,hostfwd=tcp::5555-:5555 -device direct-express-pci -display sdl -hda hda.img -cdrom android_x86_64.iso
+    ```
+    If you use HAXM, run the following
+    ```
+    .\\x86_64-softmmu\\qemu-system-x86_64.exe -accel hax -cpu android64 -m 4096 -smp 4 -machine usb=on -device usb-kbd -device usb-tablet -boot menu=on -soundhw hda -net nic -net user,hostfwd=tcp::5555-:5555 -device direct-express-pci -display sdl -hda hda.img -cdrom android_x86_64.iso
+    ```
 
 ### 6. Developing
 To debug the code, you can use the GDB provided by MSYS2. You may need to examine which GDB is used by checking the output of configuration. The last few lines should contain the location of the used GDB. Normally, it should be `/mingw64/bin/gdb-multiarch.exe` or `/mingw64/bin/gdb.exe`
