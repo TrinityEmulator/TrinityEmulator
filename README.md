@@ -29,8 +29,7 @@ This is the Artifact README for Trinity---an Android emulator designed to simult
 
   * NOTE: Hyper-V generally provides better CPU performance over HAXM. 
   So we recommend using Hyper-V if possible. Our program is capable of detecting Hyper-V and automatically choosing it when applicable. 
-  Also, on Windows 22H2, HAXM seems to show some buggy behaviors that prevent the guest OS from loading into the virtual memory,   
-    in which case it's better you enable Hyper-V instead.
+  Also, on Windows 22H2, HAXM seems to show some buggy behaviors that prevent the guest OS from loading into the virtual memory, in which case it's better you enable Hyper-V instead.
 
 * **Running the Released Binary**
 
