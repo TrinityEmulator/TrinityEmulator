@@ -94,7 +94,7 @@ We use git submodule to hold some of the essential modules. Thus, after `git clo
 * **Configure**
 
     `cd` to the root directory of the repo at the MSYS terminal (note that you *cannot* use a typical Windows path such as `C:/XXX` for `cd`, instead you can simply drag and drop the repo to the terminal to acquire its path in MSYS), input the following to configure:
-    `./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl  --target-list=x86_64-softmmu --disable-werror`
+    `./configure --cross-prefix=x86_64-w64-mingw32- --disable-gtk --enable-sdl --enable-whpx --target-list=x86_64-softmmu --disable-werror`
 * **Compile**
 
     After the configuration, simply type `make install -j$(nproc)`.
