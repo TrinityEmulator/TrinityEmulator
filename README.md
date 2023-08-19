@@ -121,10 +121,10 @@ Our code is under the GPLv2 license.
 ### 8. Reference
 If you use Trinity in your work, please reference it using
 ```
-@inproceedings {di2022trinity,
-    author = {Di Gao and Hao Lin and Zhenhua Li and Chengen Huang and Liangyi Gong and Feng Qian and Yunhao Liu and Tianyin Xu},
-    title = {Trinity: High-Performance Mobile Emulation through Graphics Projection},
-    booktitle = {16th {USENIX} Symposium on Operating Systems Design and Implementation ({OSDI} 22)},
+@inproceedings {gao2022trinity,
+    author = {Gao, Di and Lin, Hao and Li, Zhenhua and Huang, Chengen and Liu, Yunhao and Qian, Feng and Gong, Liangyi and Xu, Tianyin},
+    title = {{Trinity: High-Performance Mobile Emulation through Graphics Projection}},
+    booktitle = {The 16th {USENIX} Symposium on Operating Systems Design and Implementation ({OSDI} 22)},
     year = {2022},
     publisher = {{USENIX} Association}
   }
