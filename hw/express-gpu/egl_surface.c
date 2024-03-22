@@ -160,24 +160,6 @@ Window_Buffer *render_surface_create(EGLConfig eglconfig, int width, int height,
     EGLint sampler_num = config->samples_per_pixel;
 
     
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     if (red_bits == 2 && green_bits == 2 && blue_bits == 2 && alpha_bits == 2)
     {
         

@@ -43,6 +43,8 @@ int VSYNC_enable = 0;
 
 int composer_refresh_HZ = 60;
 
+int main_window_fullscreen = 0;
+
 static unsigned int main_frame_num = 0;
 
 static int event_queue_lock;
@@ -266,6 +268,26 @@ static void keyboard_handle_callback(GLFWwindow *window, int key, int code, int 
     else
     {
         down = true;
+    }
+
+    if (action == GLFW_PRESS && key == GLFW_KEY_F11)
+    {
+        if (main_window_fullscreen)
+        {
+            GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+            int x = mode->width / 2 - 512;
+            int y = mode->height / 2 - 384;
+            glfwSetWindowMonitor(window, NULL, x, y, 1024, 768, 0);
+            main_window_fullscreen = false;
+        }
+        else
+        {
+            GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+            glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+            main_window_fullscreen = true;
+        }
     }
 
     if ((mods & GLFW_MOD_ALT) != 0 && (action == GLFW_PRESS || action == GLFW_REPEAT) && key < 100)
