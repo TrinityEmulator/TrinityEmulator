@@ -156,6 +156,7 @@ void parse_pixel_format(Egl_Display *display, HDC dummy_ctx, PIXELFORMATDESCRIPT
     if (!wgl_display->wgl_ext->wglGetPixelFormatAttribivARB)
     {
         express_printf("No available wglGetPixelFormatAttribivARB\n");
+        free(config);
         return;
     }
 
