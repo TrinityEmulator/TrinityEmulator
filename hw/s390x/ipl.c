@@ -684,6 +684,8 @@ static void s390_ipl_prepare_qipl(S390CPU *cpu)
 int s390_ipl_prepare_pv_header(void)
 {
     IplParameterBlock *ipib = s390_ipl_get_iplb_pv();
+    if (!ipib)
+        return 1;
     IPLBlockPV *ipib_pv = &ipib->pv;
     void *hdr = g_malloc(ipib_pv->pv_header_len);
     int rc;
@@ -699,6 +701,8 @@ int s390_ipl_prepare_pv_header(void)
 int s390_ipl_pv_unpack(void)
 {
     IplParameterBlock *ipib = s390_ipl_get_iplb_pv();
+    if (!ipib)
+        return 1;
     IPLBlockPV *ipib_pv = &ipib->pv;
     int i, rc = 0;
 
